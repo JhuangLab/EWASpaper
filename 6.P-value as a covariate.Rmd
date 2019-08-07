@@ -1,0 +1,233 @@
+---
+title: "P-value as a covariate"
+author: "Bai Ling"
+date: "`r format(Sys.Date(), format = '%d %B %Y')`"
+output: 
+  html_document:
+    theme: cerulean
+    css: style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = 'center')
+options(stringsAsFactors = FALSE)
+setwd("/Users/apple/Documents/GitHub/EWAS/")
+```
+## Contents
+***
+- [1. Significant signals change across methods and covariates](#heatmap)
+- [2. The performance of covariate p-value by method IHW](#IHW)
+- [3. GO and KEGG analysis for ST results](#ST)
+- [4. Validate the IHW results by method CAMT](#CAMT)
+<br>
+<br>
+<br>
+
+#### Library R packages and basic setttings
+```{r library prepare, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(circlize)
+library(ComplexHeatmap)
+library(UpSetR)
+library(ggplotify)
+library(missMethyl)
+library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+library(limma)
+library(DT)
+library(cowplot)
+selected_measure <- c("mean", "sd.b", "mad", "precision", "dhs", "direction",
+                      "chr", "refgene.pos", "dip", "probe.type", "cpg.loc", "sd.m")
+
+```
+
+
+### 1. Significant signals change across methods and covariates {#heatmap}
+***
+```{r}
+pvalues <- readRDS("Data/pvalue.as.covariate.RDs")
+discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
+discovery <- as.data.frame(t(discovery))
+# extract BH and ST signal numbers
+BH <- unique(discovery$BH)
+ST <- unique(discovery$ST)
+plot_data <- discovery %>%
+  select(c(selected_measure, "pvalue"))
+
+plot_data <- as.matrix((plot_data - ST)/ST)*100
+cell_lable <- paste0(round(plot_data, 0), "%")
+cell_lable <- matrix(cell_lable, nrow = nrow(plot_data), ncol = ncol(plot_data))
+
+col_fun = colorRamp2(c(-200, 0, 400), c("royalblue", "white", "red"), space = "RGB")
+panel_A <- Heatmap(plot_data,
+        name = "color key",
+        col = col_fun,
+        rect_gp = gpar(col = "grey", lwd = 0.25),
+        cell_fun = function(j, i, x, y, width, height, fill){
+          if(abs(plot_data[i, j]) > 1) grid.text(cell_lable[i, j], x, y, gp = gpar(fontsize = 8))
+        },
+        clustering_distance_rows = "euclidean",
+        clustering_distance_columns = "euclidean",
+        clustering_method_rows = "ward.D",
+        clustering_method_columns = "ward.D",
+        heatmap_legend_param = list(labels_gp = gpar(fontsize = 6),
+                                    labels = c("-100%", 0, "200%", "400%")),
+        row_names_gp = gpar(fontsize = 10),
+        column_names_gp = gpar(fontsize = 10))
+draw(panel_A)
+panel_A <- grid.grabExpr(draw(panel_A))
+
+```
+
+### 2. The performance of covariate p-value by method IHW {#IHW}
+***
+#### 2.1 The intersections
+```{r, fig.height=6, fig.width=7}
+raw_probes <- rownames(pvalues[[1]])
+sig_probes <- lapply(pvalues, function(x)apply(x, 2, function(x)raw_probes[x < 0.05]))
+selected_method <- "IHW"
+upset_list <- sig_probes[[selected_method]]
+# convert list to data frame
+selected <- unique(unlist(upset_list))
+upset_df <- as.data.frame(matrix(nrow = length(selected), ncol = length(upset_list),
+                                 dimnames = list(selected, names(upset_list))))
+for(i in 1:nrow(upset_df)){
+  for(j in 1:ncol(upset_df)){
+    if(rownames(upset_df)[i] %in% upset_list[[colnames(upset_df)[j]]]){
+      upset_df[i, j] <- 1
+    }else{
+      upset_df[i, j] <- 0
+    }
+  }
+}
+# add annotations for EWAS28 significant probes by method BH
+EWAS28_sigprobes <- readRDS("Data/EWAS28_sigprobes.RDs")
+upset_df$EWAS28 <- ifelse(rownames(upset_df) %in% EWAS28_sigprobes, "yes", "no")
+# upset
+selected_measure <- c(selected_measure, "pvalue", "ST")
+panel_B <- upset(upset_df,
+      sets = selected_measure, 
+      order.by = "freq",
+      queries = list(list(query = elements, params = list("EWAS28", "yes"), color = "red", active = TRUE)))
+
+panel_B <- as.ggplot(panel_B)
+panel_B
+```
+
+#### 2.2 GO and KEGG enrichment analysis
+```{r, warning=FALSE, message=FALSE}
+## look at the results obtained by covariate pvalue with method IHW
+sigCpGs <- upset_list[["pvalue"]]
+gst <- gometh(sig.cpg=sigCpGs, all.cpg=raw_probes, collection = "GO", prior.prob = TRUE, array.type = "450K", plot.bias = FALSE)
+# Top 10 GO categories
+top10_GO <- topGO(gst, number=10)
+datatable(top10_GO, rownames = TRUE, filter= "none", options = list(pageLength = 5, scrollX=T))
+top10_GO$ratio <- top10_GO$DE / top10_GO$N
+top10_GO$Term <- factor(top10_GO$Term, levels = as.character(top10_GO$Term[10:1]))
+panel_C <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) + 
+  geom_col(aes(fill = FDR), width = 0.5) + 
+  coord_flip() + 
+  theme_classic() + 
+  theme(legend.position = "none", axis.title.y = element_blank())
+panel_C
+# Top 10 KEGG categories
+kegg <- gometh(sig.cpg = sigCpGs, all.cpg = raw_probes, collection = "KEGG", prior.prob=TRUE)
+datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
+```
+
+```{r, fig.height=9, fig.width=7}
+bottom_row <- ggdraw() +
+  draw_plot(panel_B, x = 0, y = 0, width = 1, height = 1) +
+  draw_plot(panel_C, x = 0.4, y= 0.45, width = 0.6, height = 0.5) +
+  draw_plot_label(c("B", "C"), x = c(0, 0.4), y = c(1, 0.98), size = 18)
+f8 <- plot_grid(panel_A, bottom_row, labels = c("A", ""), ncol = 1,
+                  rel_heights = c(3, 6), label_size = 18)
+f8
+```
+
+```{r, include=FALSE}
+save_plot("Figures/Figure8.pdf", plot = f8, base_width = 7, base_height = 8.5)
+```
+
+### 3. GO and KEGG analysis for ST results {#ST}
+***
+```{r, warning=FALSE, warning=FALSE}
+reference <- upset_list[["ST"]]
+# Top 20 GO categories
+gst <- gometh(sig.cpg=reference, all.cpg=raw_probes, collection = "GO", prior.prob = TRUE, array.type = "450K", plot.bias = FALSE)
+datatable(topGO(gst, number=20), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
+# Top 10 KEGG categories
+kegg <- gometh(sig.cpg = reference, all.cpg = raw_probes, collection = "KEGG", prior.prob=TRUE)
+datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
+```
+
+### 4. Validate the IHW results by method CAMT {#CAMT}
+***
+#### 4.1 The intersections
+```{r, fig.height=6, fig.width=6}
+selected_method <- "CAMT"
+upset_list <- sig_probes[[selected_method]]
+# convert list to data frame
+selected <- unique(unlist(upset_list))
+upset_df <- as.data.frame(matrix(nrow = length(selected), ncol = length(upset_list),
+                                 dimnames = list(selected, names(upset_list))))
+for(i in 1:nrow(upset_df)){
+  for(j in 1:ncol(upset_df)){
+    if(rownames(upset_df)[i] %in% upset_list[[colnames(upset_df)[j]]]){
+      upset_df[i, j] <- 1
+    }else{
+      upset_df[i, j] <- 0
+    }
+  }
+}
+# add annotations for EWAS28 significant probes by method BH
+EWAS28_sigprobes <- readRDS("Data/EWAS28_sigprobes.RDs")
+upset_df$EWAS28 <- ifelse(rownames(upset_df) %in% EWAS28_sigprobes, "yes", "no")
+# upset
+fs13_1 <- upset(upset_df,
+      sets = selected_measure, 
+      order.by = "freq",
+      queries = list(list(query = elements, params = list("EWAS28", "yes"), color = "red", active = TRUE)))
+fs13_1 <- as.ggplot(fs13_1)
+fs13_1
+```
+
+#### 4.2 GO and KEGG enrichment analysis
+```{r, warning=FALSE, warning=FALSE}
+sigCpGs <- upset_list[["pvalue"]]
+gst <- gometh(sig.cpg=sigCpGs, all.cpg=raw_probes, collection = "GO", prior.prob = TRUE, array.type = "450K", plot.bias = FALSE)
+# Top 10 GO categories
+top10_GO <- topGO(gst, number=10)
+datatable(top10_GO, rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
+top10_GO$ratio <- top10_GO$DE / top10_GO$N
+top10_GO$Term <- factor(top10_GO$Term, levels = as.character(top10_GO$Term[10:1]))
+options(digits = 2)
+fs13_2 <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) + 
+  geom_col(aes(fill = FDR), width = 0.5) + 
+  coord_flip() + 
+  theme_classic() + 
+  scale_fill_continuous(guide = guide_colourbar(barwidth = 10, 
+                               barheight = 0.5,
+                               direction = "horizontal",
+                               title.position = "left")) +
+  theme(legend.position = c(-0.5, 1.1), 
+        legend.title = element_text(size = 8, vjust = 1),
+        legend.text = element_text(size = 6),
+        axis.title.y = element_blank())
+# Top 10 KEGG categories
+kegg <- gometh(sig.cpg = sigCpGs, all.cpg = raw_probes, collection = "KEGG", prior.prob=TRUE)
+datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
+```
+
+```{r, fig.width=7, fig.height=6}
+fs13 <- ggdraw() +
+  draw_plot(fs13_1, x = 0, y = 0, width = 1, height = 1) +
+  draw_plot(fs13_2, x = 0.4, y= 0.4, width = 0.6, height = 0.5) +
+  draw_plot_label(c("A", "B"), x = c(0, 0.4), y = c(1, 0.98), size = 18)
+
+fs13
+```
+
+```{r, include=FALSE}
+save_plot("Figures/FigureS13.pdf", plot = fs13, base_width = 6.69, base_height = 6)
+```
+

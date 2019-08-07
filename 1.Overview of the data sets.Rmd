@@ -1,0 +1,83 @@
+---
+title: "Overview of the data sets"
+author: "Bai Ling"
+date: "`r format(Sys.Date(), format = '%d %B %Y')`"
+output: 
+  html_document:
+    theme: cerulean
+    css: style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = 'center')
+options(stringsAsFactors = FALSE)
+setwd("/Users/apple/Documents/GitHub/EWAS/")
+```
+
+## Contents
+***
+- [1. Tissue distribution of EWAS data sets](#tissue)
+- [2. QQ-plot of p-values](#qqplot)
+<br>
+<br>
+<br>
+
+#### Library R packages and basic settings
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(ggpubr)
+options(stringsAsFactors = FALSE)
+```
+
+### 1. Tissue distribution of EWAS data sets {#tissue}
+***
+The 61 datasets come from 58 GEO datasets, their tissue sources and sample sizes are displayed.
+```{r}
+sampleinfo <- read.csv("Data/DatasetInfo.csv", header = TRUE)
+sampleinfo <- arrange(sampleinfo, desc(Size))
+sampleinfo$Tissue <- factor(sampleinfo$Tissue, levels = unique(sampleinfo$Tissue))
+sampleinfo <- arrange(sampleinfo, Tissue, desc(Size))
+sampleinfo$New_ID <- factor(sampleinfo$New_ID, levels = unique(sampleinfo$New_ID))
+my_palette <- c("#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#E6AB02",  "#A6761D", "#A6CEE3", "#1F78B4", "#B2DF8A", "#FFFF00", "#FB9A99", "#E31A1C", "#949494", "#FDBF6F", "#FF7F00", "#CAB2D6", "#2F4F4F", "#7FFFD4", "#FFE4E1", "#00E5EE")
+p1 <- ggplot(data = sampleinfo, aes(x = New_ID, y = Size, group = Tissue)) +
+  geom_bar(aes(fill = Tissue), stat = "identity", width = 0.5) + 
+  scale_fill_manual(values = my_palette) +
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 75, size = 4, hjust = 0, vjust = 0.1), 
+        axis.title.x = element_blank(),
+        legend.position = "top",
+        legend.key.size = unit(0.3, "cm"),
+        title = element_text(size = 10),
+        text = element_text(size = 8))
+p1
+```
+
+```{r, include=FALSE}
+ggsave("Figures/Figure1.pdf", plot = p1, width = 5, height = 4, useDingbats = FALSE)  
+```
+
+### 2. QQ-plot of p-values {#qqplot}
+***
+```{r, results='hide', fig.width=6.69, fig.height=8.86}
+load("Data/qqplot.RData")
+myplots <- list()
+for(i in 1:length(myplot)){
+  myplots[[i]] <- myplot[[i]] + ggtitle(names(myplot)[i]) +
+    theme(axis.title = element_text(size = 6), axis.text = element_text(size = 6), plot.title = element_text(hjust = 0.5, size = 8))
+}
+plots <- ggarrange(plotlist = myplots, ncol = 3, nrow = 5, common.legend = TRUE)
+# show the example of 15 datasets
+plots$`1`
+```
+
+```{r, include=FALSE}
+pdf("Figures/FigureS1.pdf", width = 6.69, height = 8.86)
+plots
+dev.off()
+```
+
+
+

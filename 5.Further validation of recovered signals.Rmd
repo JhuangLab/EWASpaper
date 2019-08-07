@@ -1,0 +1,501 @@
+---
+title: "Further validation of the recovered signals"
+author: "Bai Ling"
+date: "`r format(Sys.Date(), format = '%d %B %Y')`"
+output: 
+  html_document:
+    theme: cerulean
+    css: style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+options(stringsAsFactors = FALSE)
+setwd("/Users/apple/Documents/GitHub/EWAS/")
+```
+
+## Contents
+***
+- [1. Down-sampling analysis](#downsample)
+- [2. Increasing power to discovery true signals](#age)
+- [3. Some well-known smoking-associated CpGs were recovered](#smoke)
+<br>
+<br>
+<br>
+    
+#### Library R packages and basic settings    
+```{r library prepare, message=FALSE, warning=FALSE}
+library(plyr)
+library(tidyverse)
+library(circlize)
+library(ComplexHeatmap)
+library(reshape2)
+library(UpSetR)
+library(ggplotify)
+library(cowplot)
+library(VennDiagram)
+library(ggpubr)
+
+measure_col <- c("BH"="#D55E00", "ST"="#CC79A7", "sd.b"="#7570B3", "sd.m"="#E7298A", "mean"="#A6CEE3", 
+                 "mad"="#1F78B4", "dip"="#B2DF8A", "precision"="#FFFF00", "icc.b"="#FB9A99", 
+                 "icc.m"="#E31A1C", "refgene.pos"="#FDBF6F", "chr"="#A6761D", "cpg.loc"="#1B9E77", 
+                 "dhs"="#949494", "direction"="#7FFFD4", "probe.type" ="#FFE4E1")
+method_col <- c("CAMT" = "#FF0000", "AdaPT" = "#E69F00", "IHW" = "#56B4E9", 
+                "FDRreg" = "#009E73", "BL" = "#0072B2", BH="#D55E00", ST="#CC79A7")
+```
+
+### 1. Down-sampling analysis {#downsample}
+***
+EWAS51 is a dataset with binary phenotype (FASD and control). We sampled each phenotype randomly at sample size 10, 20, 30, 40, 50, 60, 70, 80, 90 and 100 by method IHW and CAMT. This document displays the power of each method with different covariates.  
+<br>
+<br>
+
+#### 1.1 Method IHW
+```{r, fig.align='center'}
+selected_measure <- c("BH", "ST", "chr", "cpg.loc", "dhs", "dip", "direction", "mad", "mean",
+                      "precision", "probe.type", "refgene.pos", "sd.b", "sd.m")
+selected_samplesize <- c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+IHW_power <- readRDS("Data/EWAS51_IHW_downsample_power.RDs")
+# f6 <- IHW_power %>%
+#   filter(measure %in% selected_measure, sample_size %in% selected_samplesize) %>%
+#   ggplot(aes(x = factor(sample_size), y = Power, color = measure)) + 
+#   stat_summary(fun.y = mean, geom = "point", position = position_dodge(width = 0.5), na.rm = TRUE, lwd = 0.15) +
+#   stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.8, position = position_dodge(width = 0.5), na.rm = TRUE, lwd = 0.15) +
+#   scale_color_manual(values = measure_col) +
+#   theme_bw() +
+#   xlab("sample size") +
+#   theme(legend.key.size = unit(0.5, "cm"),
+#         title = element_text(size = 10),
+#         text = element_text(size = 8))
+
+IHW_power <- IHW_power %>%
+  filter(measure %in% selected_measure, sample_size %in% selected_samplesize)
+
+cdata <- ddply(IHW_power, c("measure", "sample_size"), summarise,
+               N    = sum(!is.na(Power)),
+               mean = mean(Power, na.rm = TRUE),
+               sd   = sd(Power, na.rm = TRUE),
+               se   = sd / sqrt(N))
+
+f6 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
+ geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width = 0.8, 
+               position = position_dodge(width = 0.5),
+               lwd = 0.1) +
+  geom_point(position = position_dodge(width = 0.5), size = 0.5, shape = 16) +
+  scale_color_manual(values = measure_col) +
+  xlab("Sample Size") +
+  theme_bw()
+
+f6
+```
+<br>
+<br>
+
+```{r, include=FALSE}
+ggsave("Figures/Figure6.pdf", f6, width = 7, height = 4, useDingbats = FALSE)
+```
+
+#### 1.2 Method CAMT
+```{r method CAMT, fig.align='center'}
+CAMT_power <- readRDS("Data/EWAS51_CAMT_downsample_power.RDs")
+# fs8 <- CAMT_power %>%
+#   filter(measure %in% selected_measure, sample_size %in% selected_samplesize) %>%
+#   ggplot(aes(x = factor(sample_size), y = Power, color = measure)) + 
+#   stat_summary(fun.y = mean, geom = "point", position = position_dodge(width = 0.5), na.rm = TRUE) +
+#   stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.8, position = position_dodge(width = 0.5), na.rm = TRUE) +
+#   scale_color_manual(values = measure_col) +
+#   theme_bw() +
+#   xlab("sample size") +
+#   theme(legend.key.size = unit(0.5, "cm"),
+#         title = element_text(size = 10),
+#         text = element_text(size = 8))
+CAMT_power <- CAMT_power %>%
+  filter(measure %in% selected_measure, sample_size %in% selected_samplesize)
+
+cdata <- ddply(CAMT_power, c("measure", "sample_size"), summarise,
+               N    = sum(!is.na(Power)),
+               mean = mean(Power, na.rm = TRUE),
+               sd   = sd(Power, na.rm = TRUE),
+               se   = sd / sqrt(N))
+
+fs8 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
+ geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width = 0.8, 
+               position = position_dodge(width = 0.5),
+               lwd = 0.25) +
+  geom_point(position = position_dodge(width = 0.5), size = 0.5, shape = 16) +
+  scale_color_manual(values = measure_col) +
+  xlab("Sample Size") +
+  theme_bw()
+
+fs8
+```
+
+```{r, include=FALSE}
+ggsave("Figures/FigureS8.pdf", fs8, width = 7, height = 4, useDingbats = FALSE)
+```
+
+
+### 2. Increasing power to discovery true signals {#age}
+***
+#### 2.1 Overview of dataset EWAS45 across different methods and covariates
+```{r}
+selected_measure <- c("mean", "sd.b", "mad", "icc.m", "icc.b", "precision", "dhs", "direction",
+                      "chr", "refgene.pos", "dip", "probe.type", "cpg.loc", "sd.m")
+pvalues <- readRDS("Data/EWAS45_pvalues.RDs")
+discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
+discovery <- as.data.frame(t(discovery))
+
+# extract BH and ST signal numbers
+BH <- unique(discovery$BH)
+ST <- unique(discovery$ST)
+plot_data <- discovery %>%
+  select(selected_measure)
+
+plot_data <- as.matrix((plot_data - ST)/ST)*100
+cell_lable <- paste0(round(plot_data, 0), "%")
+cell_lable <- matrix(cell_lable, nrow = nrow(plot_data), ncol = ncol(plot_data))
+
+col_fun = colorRamp2(c(-200, -100, 0, 200), 
+                     c("royalblue", "blue", "white", "red"), 
+                     space = "RGB")
+panel_A <- Heatmap(plot_data,
+        name = "color key",
+        col = col_fun,
+        rect_gp = gpar(col = "grey", lwd = 0.25),
+        cell_fun = function(j, i, x, y, width, height, fill){
+          if(abs(plot_data[i, j]) > 1) grid.text(cell_lable[i, j], x, y, gp = gpar(fontsize = 8))
+        },
+        clustering_distance_rows = "euclidean",
+        clustering_distance_columns = "euclidean",
+        clustering_method_rows = "ward.D",
+        clustering_method_columns = "ward.D",
+#        show_row_dend = FALSE,
+#        show_column_dend = FALSE,
+        row_names_gp = gpar(fontsize = 8),
+        column_names_gp = gpar(fontsize = 8),
+        heatmap_legend_param = list(title_gp = gpar(fontsize = 8), 
+                                    labels_gp = gpar(fontsize = 6),
+                                    labels = c("-200%", "-100%", 0, "100%", "200%")))
+draw(panel_A)
+panel_A <- grid.grabExpr(draw(panel_A))
+```
+<br>
+<br>
+
+#### 2.2 Boxplot of gold standard CpGs' significance orders by covariate under different methods
+```{r, message=FALSE}
+# get the finificance order for each cpg
+ranks <- lapply(pvalues, function(x)as.data.frame(apply(x, 2, function(x)rank(x, ties.method = "random"))))
+selected_method <- "IHW"
+
+gold_standard <- read.csv("Data/GoldStandardCpG.T4.csv", header = TRUE, row.names = 1)
+selected_cpg <- gold_standard$x[gold_standard$x %in% rownames(ranks[[1]])]
+
+reference_line <- median(ranks[[selected_method]][selected_cpg, "BH"])
+                         
+panel_B <- ranks[[selected_method]][selected_cpg, ] %>%
+  select(selected_measure) %>%
+  melt(value.name = "Significance_rank") %>%
+  ggplot(aes(x = variable, y = Significance_rank)) +
+  geom_boxplot(aes(fill = variable)) + 
+  scale_fill_manual(values = measure_col) +
+  scale_color_manual(values = measure_col) +
+  scale_x_discrete(limits = selected_measure) +
+  xlab("") + ylab("Significance Rank") + labs(fill = "") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        legend.position = "none")
+
+panel_B <- panel_B + geom_segment(data = ggplot_build(panel_B)$data[[1]],
+                                  aes(x = xmin, xend = xmax, y = middle, yend = middle),
+                                  color = "white") +
+  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
+panel_B
+
+selected_method <- c("AdaPT", "BL", "CAMT", "FDRreg")
+fs9 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
+  melt(value.name = "Significance_rank") %>%
+  mutate(method = sapply(str_split(variable, fixed("."), n = 2), function(x)unlist(x)[1]),
+         measure = sapply(str_split(variable, fixed("."), n = 2), function(x)unlist(x)[2])) %>%
+  filter(measure %in% selected_measure) %>%
+  ggplot(aes(x = measure, y = Significance_rank)) +
+  geom_boxplot(aes(fill = measure)) + 
+#  stat_summary(geom = "crossbar", width=0.63, fatten=0, color="white", fun.data = function(x){ return(c(y=median(x), ymin=median(x), ymax=median(x))) }) +
+  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black", alpha = 0.5) +
+  facet_wrap(~method, nrow = 2, ncol = 2) +
+  scale_fill_manual(values = measure_col) +
+  scale_x_discrete(limits = selected_measure) +
+  xlab("") + ylab("Significance Rank") + 
+  theme_bw() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.key.size = unit(0.5, "cm"))
+fs9
+```
+<br>
+<br>
+
+```{r, include=FALSE}
+save_plot("Figures/FigureS9.pdf", fs9, base_width = 6.69)
+```
+
+#### 2.3 Boxplot of gold standard CpGs' significance orders by different methods
+```{r, message=FALSE}
+# choose the most powerful covariate mean
+subset_rank <- as.data.frame(lapply(ranks, function(x)x[, "mean", drop = FALSE]))
+colnames(subset_rank) <- names(ranks)
+
+selected_method <- c("CAMT", "AdaPT", "IHW", "BL", "FDRreg")
+panel_C <- subset_rank[selected_cpg, ] %>%
+  select(selected_method) %>%
+  melt(value.name = "Significance_rank") %>%
+  ggplot(aes(x = variable, y = Significance_rank)) +
+  geom_boxplot(aes(fill = variable), width = 0.72) +
+  scale_fill_manual(values = method_col) + 
+  scale_x_discrete(limits = selected_method) +
+  xlab("") + ylab("Significance Rank") + labs(fill = "method") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 0.5, vjust = 0.5),
+        legend.position = "none")
+panel_C <- panel_C + geom_segment(data = ggplot_build(panel_C)$data[[1]],
+                       aes(x = xmin, xend = xmax, y = middle, yend = middle), 
+                       color = "white") +
+  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
+panel_C
+```
+<br>
+<br>
+#### organize figures into Figure6
+```{r, fig.width=7, fig.height=8}
+bottom_row <- plot_grid(panel_B, panel_C, nrow = 1, align = "h",
+                        labels = c("B", "C"), label_size = 18)
+f7 <- plot_grid(panel_A, bottom_row, ncol = 1,
+                labels = c("A", ""), label_size = 18)
+f7
+```
+
+```{r, include=FALSE}
+save_plot("Figures/Figure7.pdf", plot = f7, base_width = 6, base_height = 6)
+```
+
+#### 2.5 Validation in another data set EWAS27
+```{r, message=FALSE}
+selected_measure <- c("mad", "mean", "sd.b", "precision", "sd.m", "dhs", "dip", "chr",  "direction", "probe.type", "refgene.pos", "cpg.loc")
+pvalues <- readRDS("Data/EWAS27_pvalues.RDs")
+## heatmap
+discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
+discovery <- as.data.frame(t(discovery))
+
+# extract BH and ST signal numbers
+BH <- unique(discovery$BH)
+ST <- unique(discovery$ST)
+plot_data <- discovery %>%
+  select(selected_measure)
+
+plot_data <- as.matrix((plot_data - ST)/ST)*100
+cell_lable <- paste0(round(plot_data, 0), "%")
+cell_lable <- matrix(cell_lable, nrow = nrow(plot_data), ncol = ncol(plot_data))
+col_fun = colorRamp2(c(-100, 0, 200), c("blue", "white", "red"), space = "RGB")
+fs10_1 <- Heatmap(plot_data,
+        name = "color key",
+        col = col_fun,
+        rect_gp = gpar(col = "grey", lwd = 0.25),
+        cell_fun = function(j, i, x, y, width, height, fill){
+          if(abs(plot_data[i, j]) > 1) grid.text(cell_lable[i, j], x, y, gp = gpar(fontsize = 8))
+        },
+        clustering_distance_rows = "euclidean",
+        clustering_distance_columns = "euclidean",
+        clustering_method_rows = "ward.D",
+        clustering_method_columns = "ward.D",
+        row_names_gp = gpar(fontsize = 8),
+        column_names_gp = gpar(fontsize = 8),
+        heatmap_legend_param = list(labels_gp = gpar(fontsize = 6),
+                                    title_gp = gpar(fontsize = 8),
+                                    at = c(-100, 0, 100, 200),
+                                    labels = c("-100%", 0, "100%", "200%")))
+draw(fs10_1)
+fs10_1 <- grid.grabExpr(draw(fs10_1))
+
+## boxplot
+ranks <- lapply(pvalues, function(x)as.data.frame(apply(x, 2, function(x)rank(x, ties.method = "average"))))
+
+selected_method <- "IHW"
+gold_standard <- read.csv("Data/GoldStandardCpG.T4.csv", header = TRUE, row.names = 1)
+selected_cpg <- gold_standard$x[gold_standard$x %in% rownames(ranks[[1]])]
+
+reference_line <- median(ranks[[selected_method]][selected_cpg, "BH"])
+
+fs10_2 <- ranks[[selected_method]][selected_cpg, ] %>%
+  select(selected_measure) %>%
+  melt(value.name = "Significance_rank") %>%
+  ggplot(aes(x = variable, y = Significance_rank)) +
+  geom_boxplot(aes(fill = variable)) + 
+  scale_fill_manual(values = measure_col) +
+  scale_color_manual(values = measure_col) +
+  scale_x_discrete(limits = selected_measure) +
+  xlab("") + ylab("Significance Rank") + labs(fill = "") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        legend.position = "none")
+
+fs10_2 <- fs10_2 + geom_segment(data = ggplot_build(fs10_2)$data[[1]],
+                       aes(x = xmin, xend = xmax, y = middle, yend = middle), 
+                       color = "white") +
+  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
+fs10_2
+
+subset_rank <- as.data.frame(lapply(ranks, function(x)x[, "mean", drop = FALSE]))
+colnames(subset_rank) <- names(ranks)
+
+selected_method <- c("CAMT", "AdaPT", "IHW", "BL", "FDRreg")
+fs10_3 <- subset_rank[selected_cpg, ] %>%
+  select(selected_method) %>%
+  melt(value.name = "Significance_rank") %>%
+  ggplot(aes(x = variable, y = Significance_rank)) +
+  geom_boxplot(aes(fill = variable), width = 0.72) +
+  scale_fill_manual(values = method_col) + 
+  scale_x_discrete(limits = selected_method) +
+  xlab("") + ylab("Significance Rank") + labs(fill = "method") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 0.5, vjust = 0.5),
+        legend.position = "none")
+
+fs10_3 <- fs10_3 + geom_segment(data = ggplot_build(fs10_3)$data[[1]],
+                       aes(x = xmin, xend = xmax, y = middle, yend = middle), 
+                       color = "white") +
+  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
+
+fs10_3
+
+```
+
+```{r, fig.width=7, fig.height=6}
+## put all figures together
+bottom_row <- plot_grid(fs10_2, fs10_3, labels = c("B", "C"), align = "h", nrow = 1, label_size = 18)
+fs10 <- plot_grid(fs10_1, bottom_row, labels = c("A", ""), ncol = 1, label_size = 18)
+fs10
+```
+
+```{r, include=FALSE}
+save_plot("Figures/FigureS10.pdf", plot = fs10, base_width = 6, base_height = 6)
+```
+
+
+### 3. Some well-known smoking-associated CpGs were recovered {#smoke}
+***
+#### 3.1 Compare covariate-adaptive FDR methods' result with reported smoking-related CpGs
+```{r overview of results, include=FALSE}
+selected_measure <- c("mean", "sd.b", "mad", "precision", "dhs", "chr", "refgene.pos",
+                      "dip", "probe.type", "cpg.loc", "sd.m")
+pvalues <- readRDS("Data/EWAS20.pvalues.RDs")
+library(readxl)
+raw_probes <- rownames(pvalues[[1]])
+sig_probes <- lapply(pvalues, function(x)apply(x, 2, function(x)raw_probes[x < 0.05]))
+```
+##### 3.1.1 Method IHW
+```{r}
+result <- sig_probes[["IHW"]]
+
+# compare with the results of GSE50660-originated paper
+paper_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", sheet = "GSE50660")
+overlap <- lapply(result, function(x)intersect(x, paper_results$CpGs))
+reccurence <- as.data.frame(lapply(overlap, function(x)sprintf("%s/%s", length(x), length(paper_results$CpGs))))
+(reccurence <- reccurence[, c("BH", "ST", selected_measure)])
+
+# extra findings by covariates
+identical(result[["BH"]], result[["ST"]])
+BH <- result[["BH"]]
+result$BH <- NULL
+result$ST <- NULL
+extra_findings <- lapply(result, function(x)setdiff(setdiff(x, BH), paper_results$CpGs))
+(extra_findings <- extra_findings[selected_measure])
+
+# see if the extra findings are in the list of other two papers
+race_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", sheet = "different_population")
+(overlap_1 <- lapply(extra_findings, function(x)intersect(x, race_results$CpGs)))
+multiple_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", sheet = "multiple_reported")
+(overlap_2 <- lapply(extra_findings, function(x)intersect(x, multiple_results$CpGs)))
+IHW <- unique(unlist(extra_findings)) # save for later use
+```
+##### 3.1.2 Method CAMT
+```{r}
+result <- sig_probes[["CAMT"]]
+
+# compare with the results of GSE50660-originated paper
+overlap <- lapply(result, function(x)intersect(x, paper_results$CpGs))
+reccurence <- as.data.frame(lapply(overlap, function(x)sprintf("%s/%s", length(x), length(paper_results$CpGs))))
+(reccurence <- reccurence[, c("BH", "ST", selected_measure)])
+
+# extra findings by covariates
+identical(result[["BH"]], result[["ST"]])
+BH <- result[["BH"]]
+result$BH <- NULL
+result$ST <- NULL
+extra_findings <- lapply(result, function(x)setdiff(setdiff(x, BH), paper_results$CpGs))
+(extra_findings <- extra_findings[selected_measure])
+
+# see if the extra findings are in the list of other two papers
+(overlap_1 <- lapply(extra_findings, function(x)intersect(x, race_results$CpGs)))
+(overlap_2 <- lapply(extra_findings, function(x)intersect(x, multiple_results$CpGs)))
+CAMT <- unique(unlist(extra_findings)) # save for later use
+```
+<br>
+<br>
+
+#### 3.2 Intersetion of method IHW and CAMT
+```{r venn plot, fig.width=4, fig.height=3}
+# fs12 <- venn.diagram(list(IHW=IHW, CAMT=CAMT), 
+#                   filename = NULL,
+#                   fill = c("pink", "green"),
+#                   cat.pos = c(0, 0),
+#                   direct.area = FALSE
+#                   )
+fs12 <- draw.pairwise.venn(area1 = length(IHW),
+                           area2 = length(CAMT),
+                           cross.area = length(intersect(IHW, CAMT)),
+                           category = c("IHW", "CAMT"),
+                           fill = c("pink", "skyblue"),
+                           cat.pos = c(0, 0),
+                           scaled = FALSE)
+plot_grid(grobTree(fs12))
+```
+<br>
+<br>
+
+```{r, include=FALSE}
+save_plot("Figures/FigureS12.pdf", fs12)
+```
+
+#### 3.3 Compare the methylation level of cg18092474 between groups
+```{r}
+methy_data <- readRDS("Data/cg18092474.RDs")
+
+# count samples within each group
+table(methy_data$group)
+```
+<br>
+
+```{r}
+fs11 <- methy_data %>%
+  ggplot(aes(x = group, y = bVals, fill = group)) + 
+  stat_boxplot(geom = "errorbar", width = 0.3) + 
+  geom_boxplot(width = 0.6) + 
+  scale_x_discrete(labels = c("current smoker (n=22)", "former smoker (n=263)", "never (n=179)")) +
+  annotate("text", label = "BH: 0.090       ST: 0.088\nIHW: 0.021       CAMT: 0.019",
+           x = 2, y = 0.9:1, color = "red") +
+  geom_segment(aes(x = 1, y = 0.9, xend = 3, yend = 0.9), size = 0.25) +
+  geom_segment(aes(x = 1, y = 0.8, xend = 1, yend = 0.9), size = 0.1) +
+  geom_segment(aes(x = 3, y = 0.85, xend = 3, yend = 0.9), size = 0.1) +
+  ylim(0, 1) +
+  theme_bw() + 
+  theme(legend.position = "none") 
+fs11
+```
+<br>
+<br>
+
+
+```{r, include=FALSE}
+save_plot("Figures/FigureS11.pdf", plot = fs11, base_width = 5, base_height = 6)
+```
+

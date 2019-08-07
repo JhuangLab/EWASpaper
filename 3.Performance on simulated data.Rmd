@@ -1,0 +1,31 @@
+---
+title: "Performance on simulated EWAS data"
+author: "Bai Ling"
+date: "`r format(Sys.Date(), format = '%d %B %Y')`"
+output: 
+  html_document:
+    theme: cerulean
+    css: style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+setwd("/Users/apple/Documents/GitHub/EWAS/")
+```
+
+## Contents
+***
+- [1. Performance on simulated data where differential CpGs were randomly distributed](#randomly)
+- [2. Performance on simulated data where differential CpGs were clustered](#clustered)
+<br>
+<br>
+<br>
+
+### 1. Performance on simulated data where differential CpGs were randomly distributed {#randomly}
+***
+![](Figures/Figure4.png)
+<br>
+
+### 2. Performance on simulated data where differential CpGs were clustered {#clustered}
+***
+![](Figures/FigureS4.png)
