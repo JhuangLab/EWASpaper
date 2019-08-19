@@ -44,9 +44,10 @@ selected_measure <- c("mean", "sd.b", "mad", "precision", "dhs", "direction",
 ### 1. Significant signals change across methods and covariates {#heatmap}
 ***
 ```{r}
-pvalues <- readRDS("Data/pvalue.as.covariate.RDs")
+pvalues <- readRDS("Data/pvalue.as.covariate.RDS")
 discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
 discovery <- as.data.frame(t(discovery))
+
 # extract BH and ST signal numbers
 BH <- unique(discovery$BH)
 ST <- unique(discovery$ST)
@@ -86,6 +87,7 @@ raw_probes <- rownames(pvalues[[1]])
 sig_probes <- lapply(pvalues, function(x)apply(x, 2, function(x)raw_probes[x < 0.05]))
 selected_method <- "IHW"
 upset_list <- sig_probes[[selected_method]]
+
 # convert list to data frame
 selected <- unique(unlist(upset_list))
 upset_df <- as.data.frame(matrix(nrow = length(selected), ncol = length(upset_list),
@@ -99,9 +101,11 @@ for(i in 1:nrow(upset_df)){
     }
   }
 }
+
 # add annotations for EWAS28 significant probes by method BH
-EWAS28_sigprobes <- readRDS("Data/EWAS28_sigprobes.RDs")
+EWAS28_sigprobes <- readRDS("Data/EWAS28_sigprobes.RDS")
 upset_df$EWAS28 <- ifelse(rownames(upset_df) %in% EWAS28_sigprobes, "yes", "no")
+
 # upset
 selected_measure <- c(selected_measure, "pvalue", "ST")
 panel_B <- upset(upset_df,
@@ -118,6 +122,7 @@ panel_B
 ## look at the results obtained by covariate pvalue with method IHW
 sigCpGs <- upset_list[["pvalue"]]
 gst <- gometh(sig.cpg=sigCpGs, all.cpg=raw_probes, collection = "GO", prior.prob = TRUE, array.type = "450K", plot.bias = FALSE)
+
 # Top 10 GO categories
 top10_GO <- topGO(gst, number=10)
 datatable(top10_GO, rownames = TRUE, filter= "none", options = list(pageLength = 5, scrollX=T))
@@ -129,6 +134,7 @@ panel_C <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) +
   theme_classic() + 
   theme(legend.position = "none", axis.title.y = element_blank())
 panel_C
+
 # Top 10 KEGG categories
 kegg <- gometh(sig.cpg = sigCpGs, all.cpg = raw_probes, collection = "KEGG", prior.prob=TRUE)
 datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
@@ -152,9 +158,11 @@ save_plot("Figures/Figure8.pdf", plot = f8, base_width = 7, base_height = 8.5)
 ***
 ```{r, warning=FALSE, warning=FALSE}
 reference <- upset_list[["ST"]]
+
 # Top 20 GO categories
 gst <- gometh(sig.cpg=reference, all.cpg=raw_probes, collection = "GO", prior.prob = TRUE, array.type = "450K", plot.bias = FALSE)
 datatable(topGO(gst, number=20), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
+
 # Top 10 KEGG categories
 kegg <- gometh(sig.cpg = reference, all.cpg = raw_probes, collection = "KEGG", prior.prob=TRUE)
 datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
@@ -166,6 +174,7 @@ datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = 
 ```{r, fig.height=6, fig.width=6}
 selected_method <- "CAMT"
 upset_list <- sig_probes[[selected_method]]
+
 # convert list to data frame
 selected <- unique(unlist(upset_list))
 upset_df <- as.data.frame(matrix(nrow = length(selected), ncol = length(upset_list),
@@ -179,9 +188,11 @@ for(i in 1:nrow(upset_df)){
     }
   }
 }
+
 # add annotations for EWAS28 significant probes by method BH
 EWAS28_sigprobes <- readRDS("Data/EWAS28_sigprobes.RDs")
 upset_df$EWAS28 <- ifelse(rownames(upset_df) %in% EWAS28_sigprobes, "yes", "no")
+
 # upset
 fs13_1 <- upset(upset_df,
       sets = selected_measure, 
@@ -195,12 +206,15 @@ fs13_1
 ```{r, warning=FALSE, warning=FALSE}
 sigCpGs <- upset_list[["pvalue"]]
 gst <- gometh(sig.cpg=sigCpGs, all.cpg=raw_probes, collection = "GO", prior.prob = TRUE, array.type = "450K", plot.bias = FALSE)
+
 # Top 10 GO categories
 top10_GO <- topGO(gst, number=10)
 datatable(top10_GO, rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
 top10_GO$ratio <- top10_GO$DE / top10_GO$N
 top10_GO$Term <- factor(top10_GO$Term, levels = as.character(top10_GO$Term[10:1]))
+
 options(digits = 2)
+
 fs13_2 <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) + 
   geom_col(aes(fill = FDR), width = 0.5) + 
   coord_flip() + 
@@ -213,6 +227,7 @@ fs13_2 <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) +
         legend.title = element_text(size = 8, vjust = 1),
         legend.text = element_text(size = 6),
         axis.title.y = element_blank())
+
 # Top 10 KEGG categories
 kegg <- gometh(sig.cpg = sigCpGs, all.cpg = raw_probes, collection = "KEGG", prior.prob=TRUE)
 datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))

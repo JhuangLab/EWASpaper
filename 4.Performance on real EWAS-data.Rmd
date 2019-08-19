@@ -35,11 +35,12 @@ library(RColorBrewer)
 library(cowplot)
 library(ggplotify)
 library(ggpubr)
+library(ggforce)
 method_col <- c("CAMT" = "#FF0000", "AdaPT" = "#E69F00", "IHW" = "#56B4E9", 
                 "FDRreg" = "#009E73", "BL" = "#0072B2")
 measure_col <- c("BH"="#1B9E77", "ST"="#D95F02", "sd.b"="#7570B3", "sd.m"="#E7298A", "mean"="#A6CEE3", 
                  "mad"="#1F78B4", "dip"="#B2DF8A", "precision"="#FFFF00", "icc.b"="#FB9A99", 
-                 "icc.m"="#E31A1C", "refgene.pos"="#FDBF6F", "chr"="#A6761D", "cpg.loc"="#CAB2D6", 
+                 "icc.m"="#E31A1C", "refgene.pos"="#FDBF6F", "chr"="#A6761D", "cpg.loc"="#CAB2D6",
                  "dhs"="#949494", "direction"="#7FFFD4", "probe.type" ="#FFE4E1")
 ```
 
@@ -61,9 +62,9 @@ selected_measure <- c("dip", "icc.b", "icc.m", "mad", "mean", "precision", "sd.b
 panel_A <- runtime %>%
   filter(method %in% selected_methods, measure %in% selected_measure) %>%
   ggplot(aes(x = measure, y = mean, group = method, color = method)) +
-  geom_line() +
-  geom_point(size = 0.5) +
-  geom_errorbar(aes(ymin = mean-1.96*se, ymax = mean+1.96*se), width = 0.1) +
+  geom_line(lwd = 0.3) +
+  geom_point(size = 0.025) +
+  geom_errorbar(aes(ymin = mean-1.96*se, ymax = mean+1.96*se), width = 0.2, lwd = 0.2) +
   ylab("log10(seconds)") + xlab("") +
   theme(title = element_text(size = 10), 
          text = element_text(size = 8), 
@@ -132,28 +133,39 @@ top_anno <- plot_data %>%
 top_anno$dataset <- NULL
 
 # heatmap
-col_fun = circlize::colorRamp2(c(-1, -0.5, 0, 0.5, 1), c("royalblue", "blue", "white", "red", "red3"), space = "RGB")
+col_fun <- colorRamp2(c(-1, -0.5, 0, 0.5, 1), c("royalblue", "blue", "white", "red", "red3"), space = "RGB")
+ST_color <- colorRamp2(c(0, 200, 1000, 10000), c("#DEEBF7", "#C6DBEF", "#6BAED6", "#08306B"))
+pi0_color <- colorRamp2(c(0.6, 0.9, 0.95, 1), c("#F7FCF5", "#A1D99B", "#41AB5D", "#00441B"))
+
 panel_B <- Heatmap(heatmap_data,
                    name = "logFC",
                    rect_gp = gpar(col = "grey", lwd = 0.05),
                    cluster_rows = FALSE,
                    cluster_columns = FALSE,
                    col = col_fun, 
-                   left_annotation = rowAnnotation(ST = annotation_row$ST,
-                                                   pi0 = annotation_row$pi0,
-                                                   col = list(ST = colorRamp2(c(0, 200, 1000, 10000), c("#DEEBF7", "#C6DBEF", "#6BAED6", "#08306B")),
-                                                              pi0 = colorRamp2(c(0.6, 0.9, 0.95, 1), c("#F7FCF5", "#A1D99B", "#41AB5D", "#00441B"))),
-                                                   simple_anno_size = unit(0.25, "cm"),
-                                                   annotation_name_gp = gpar(fontsize = 8),
-                                                   annotation_legend_param = list(title_gp = gpar(fontsize = 9),
-                                                                                  labels_gp = gpar(fontsize = 7))),
-                   top_annotation = columnAnnotation(rank = anno_boxplot(top_anno, outline = FALSE, gp = gpar(fill = measure_col[covariate_order[-grep("icc", covariate_order)]]))),
+                   
+                   left_annotation = rowAnnotation(
+                     ST = annotation_row$ST,
+                     pi0 = annotation_row$pi0,
+                     col = list(ST = ST_color,
+                                pi0 = pi0_color),
+                     simple_anno_size = unit(0.25, "cm"),
+                     annotation_name_gp = gpar(fontsize = 8),
+                     annotation_legend_param = list(title_gp = gpar(fontsize = 9),
+                     labels_gp = gpar(fontsize = 7))),
+                   
+                   top_annotation = columnAnnotation(
+                     rank = anno_boxplot(top_anno, outline = FALSE, 
+                    gp = gpar(fill = measure_col[covariate_order[-grep("icc", covariate_order)]]))),
+                   
                    row_names_gp = gpar(fontsize = 5), 
                    column_names_gp = gpar(fontsize = 8),
                    column_split = rep(c("AdaPT", "BL", "CAMT", "FDRreg", "IHW"), each = 12),
                    column_gap = unit(0, "mm"),
-                   column_labels = unlist(lapply(str_split(colnames(heatmap_data), pattern = "_"), function(x)x[[2]])),
-                   heatmap_legend_param = list(title_gp = gpar(fontsize = 9), labels_gp = gpar(fontsize = 7)))
+                   column_labels = unlist(lapply(str_split(colnames(heatmap_data), pattern = "_"),
+                                                 function(x)x[[2]])),
+                   heatmap_legend_param = list(title_gp = gpar(fontsize = 9), 
+                                               labels_gp = gpar(fontsize = 7)))
 
 panel_B
 panel_B <- grid.grabExpr(draw(panel_B))
@@ -167,11 +179,10 @@ panel_C <- left_join(discovery_number, reference_discovery, by = "dataset") %>%
   mutate(logFC = log2((discovery + 1)/(ST + 1))) %>%
   group_by(dataset, method) %>%
   summarize(logFCmax = max(logFC)) %>%
-  ggplot(aes(x = method, y = logFCmax)) +
-  geom_boxplot(aes(fill = method), outlier.shape = NA, fatten = 1) +
-  geom_jitter(size = 1, alpha = 0.1, shape = 16) +
-#  stat_summary(fun.y = mean, geom = "point", shape = 8, color = "black") +
-  scale_fill_manual(values = method_col) +
+  ggplot(aes(x = method, y = logFCmax, color = method)) +
+  geom_boxplot(outlier.shape = NA, fatten = 1, lwd = 0.25) +
+  geom_sina(size = 1, alpha = 0.2, shape = 16) +
+  scale_color_manual(values = method_col) +
   theme(legend.position = "none", 
         axis.text.x = element_text(size = 8),
         axis.text.y = element_text(size = 8),
@@ -278,16 +289,13 @@ save_plot("Figures/Figure5.pdf", plot = f5, base_width = 6.69, base_height = 9)
 ### 4. An example demonstrated the strong informativeness of covariate mean {#example}
 ***
 ```{r, fig.width=7, fig.height=2.5}
-load("Data/EWAS33_covariates_pvalue.RData")
-rownames(cpg_result) <- cpg_result$CPG.Labels
-# macth p-value with its corresponding covariates
-cpg_result <- cpg_result[rownames(covariates), ] 
+EWAS33 <- readRDS("Data/dataset/EWAS33.RDS")
 candidate_covariates <- c("sd.b", "mad", "mean", "precision")
 
 plot_data <- data.frame()
 for(s in candidate_covariates){
-  df <- data.frame(covariate_value = covariates[[s]],
-                   p_value = cpg_result$P.value)
+  df <- data.frame(covariate_value = EWAS33[[s]],
+                   p_value = EWAS33$P.value)
   df$covariate <- s
   f <- ecdf(df$covariate_value)
   df$percentile_covariate <- f(df$covariate_value)

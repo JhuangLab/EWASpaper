@@ -25,7 +25,6 @@ setwd("/Users/apple/Documents/GitHub/EWAS/")
     
 #### Library R packages and basic settings    
 ```{r library prepare, message=FALSE, warning=FALSE}
-library(plyr)
 library(tidyverse)
 library(circlize)
 library(ComplexHeatmap)
@@ -35,6 +34,7 @@ library(ggplotify)
 library(cowplot)
 library(VennDiagram)
 library(ggpubr)
+library(readxl)
 
 measure_col <- c("BH"="#D55E00", "ST"="#CC79A7", "sd.b"="#7570B3", "sd.m"="#E7298A", "mean"="#A6CEE3", 
                  "mad"="#1F78B4", "dip"="#B2DF8A", "precision"="#FFFF00", "icc.b"="#FB9A99", 
@@ -46,7 +46,7 @@ method_col <- c("CAMT" = "#FF0000", "AdaPT" = "#E69F00", "IHW" = "#56B4E9",
 
 ### 1. Down-sampling analysis {#downsample}
 ***
-EWAS51 is a dataset with binary phenotype (FASD and control). We sampled each phenotype randomly at sample size 10, 20, 30, 40, 50, 60, 70, 80, 90 and 100 by method IHW and CAMT. This document displays the power of each method with different covariates.  
+EWAS51 is a dataset with binary phenotype (FASD and control). We sampled each phenotype randomly at sample size 10, 20, 30, 40, 50, 60, 70, 80, 90 and 100 by method IHW and CAMT. The power of each method with different covariates are displyed as follows.  
 <br>
 <br>
 
@@ -55,23 +55,12 @@ EWAS51 is a dataset with binary phenotype (FASD and control). We sampled each ph
 selected_measure <- c("BH", "ST", "chr", "cpg.loc", "dhs", "dip", "direction", "mad", "mean",
                       "precision", "probe.type", "refgene.pos", "sd.b", "sd.m")
 selected_samplesize <- c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
-IHW_power <- readRDS("Data/EWAS51_IHW_downsample_power.RDs")
-# f6 <- IHW_power %>%
-#   filter(measure %in% selected_measure, sample_size %in% selected_samplesize) %>%
-#   ggplot(aes(x = factor(sample_size), y = Power, color = measure)) + 
-#   stat_summary(fun.y = mean, geom = "point", position = position_dodge(width = 0.5), na.rm = TRUE, lwd = 0.15) +
-#   stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.8, position = position_dodge(width = 0.5), na.rm = TRUE, lwd = 0.15) +
-#   scale_color_manual(values = measure_col) +
-#   theme_bw() +
-#   xlab("sample size") +
-#   theme(legend.key.size = unit(0.5, "cm"),
-#         title = element_text(size = 10),
-#         text = element_text(size = 8))
+IHW_power <- readRDS("Data/EWAS51_IHW_downsample_power.RDS")
 
 IHW_power <- IHW_power %>%
   filter(measure %in% selected_measure, sample_size %in% selected_samplesize)
 
-cdata <- ddply(IHW_power, c("measure", "sample_size"), summarise,
+cdata <- plyr::ddply(IHW_power, c("measure", "sample_size"), summarise,
                N    = sum(!is.na(Power)),
                mean = mean(Power, na.rm = TRUE),
                sd   = sd(Power, na.rm = TRUE),
@@ -84,7 +73,11 @@ f6 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measu
   geom_point(position = position_dodge(width = 0.5), size = 0.5, shape = 16) +
   scale_color_manual(values = measure_col) +
   xlab("Sample Size") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8),
+        legend.text = element_text(size = 6),
+        legend.title = element_text(size = 8))
 
 f6
 ```
@@ -97,22 +90,11 @@ ggsave("Figures/Figure6.pdf", f6, width = 7, height = 4, useDingbats = FALSE)
 
 #### 1.2 Method CAMT
 ```{r method CAMT, fig.align='center'}
-CAMT_power <- readRDS("Data/EWAS51_CAMT_downsample_power.RDs")
-# fs8 <- CAMT_power %>%
-#   filter(measure %in% selected_measure, sample_size %in% selected_samplesize) %>%
-#   ggplot(aes(x = factor(sample_size), y = Power, color = measure)) + 
-#   stat_summary(fun.y = mean, geom = "point", position = position_dodge(width = 0.5), na.rm = TRUE) +
-#   stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.8, position = position_dodge(width = 0.5), na.rm = TRUE) +
-#   scale_color_manual(values = measure_col) +
-#   theme_bw() +
-#   xlab("sample size") +
-#   theme(legend.key.size = unit(0.5, "cm"),
-#         title = element_text(size = 10),
-#         text = element_text(size = 8))
+CAMT_power <- readRDS("Data/EWAS51_CAMT_downsample_power.RDS")
 CAMT_power <- CAMT_power %>%
   filter(measure %in% selected_measure, sample_size %in% selected_samplesize)
 
-cdata <- ddply(CAMT_power, c("measure", "sample_size"), summarise,
+cdata <- plyr::ddply(CAMT_power, c("measure", "sample_size"), summarise,
                N    = sum(!is.na(Power)),
                mean = mean(Power, na.rm = TRUE),
                sd   = sd(Power, na.rm = TRUE),
@@ -125,7 +107,11 @@ fs8 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = meas
   geom_point(position = position_dodge(width = 0.5), size = 0.5, shape = 16) +
   scale_color_manual(values = measure_col) +
   xlab("Sample Size") +
-  theme_bw()
+  theme_bw() +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8),
+        legend.text = element_text(size = 6),
+        legend.title = element_text(size = 8))
 
 fs8
 ```
@@ -141,7 +127,7 @@ ggsave("Figures/FigureS8.pdf", fs8, width = 7, height = 4, useDingbats = FALSE)
 ```{r}
 selected_measure <- c("mean", "sd.b", "mad", "icc.m", "icc.b", "precision", "dhs", "direction",
                       "chr", "refgene.pos", "dip", "probe.type", "cpg.loc", "sd.m")
-pvalues <- readRDS("Data/EWAS45_pvalues.RDs")
+pvalues <- readRDS("Data/EWAS45_adjusted_pvalues.RDS")
 discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
 discovery <- as.data.frame(t(discovery))
 
@@ -184,7 +170,7 @@ panel_A <- grid.grabExpr(draw(panel_A))
 
 #### 2.2 Boxplot of gold standard CpGs' significance orders by covariate under different methods
 ```{r, message=FALSE}
-# get the finificance order for each cpg
+# get the significance order for each cpg
 ranks <- lapply(pvalues, function(x)as.data.frame(apply(x, 2, function(x)rank(x, ties.method = "random"))))
 selected_method <- "IHW"
 
@@ -220,7 +206,6 @@ fs9 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
   filter(measure %in% selected_measure) %>%
   ggplot(aes(x = measure, y = Significance_rank)) +
   geom_boxplot(aes(fill = measure)) + 
-#  stat_summary(geom = "crossbar", width=0.63, fatten=0, color="white", fun.data = function(x){ return(c(y=median(x), ymin=median(x), ymax=median(x))) }) +
   geom_hline(yintercept = reference_line, linetype = "dashed", color = "black", alpha = 0.5) +
   facet_wrap(~method, nrow = 2, ncol = 2) +
   scale_fill_manual(values = measure_col) +
@@ -265,9 +250,9 @@ panel_C
 ```
 <br>
 <br>
-#### organize figures into Figure6
+#### organize figures into Figure 7
 ```{r, fig.width=7, fig.height=8}
-bottom_row <- plot_grid(panel_B, panel_C, nrow = 1, align = "h",
+bottom_row <- plot_grid(panel_B, panel_C, nrow = 1, align = "h", 
                         labels = c("B", "C"), label_size = 18)
 f7 <- plot_grid(panel_A, bottom_row, ncol = 1,
                 labels = c("A", ""), label_size = 18)
@@ -281,7 +266,7 @@ save_plot("Figures/Figure7.pdf", plot = f7, base_width = 6, base_height = 6)
 #### 2.5 Validation in another data set EWAS27
 ```{r, message=FALSE}
 selected_measure <- c("mad", "mean", "sd.b", "precision", "sd.m", "dhs", "dip", "chr",  "direction", "probe.type", "refgene.pos", "cpg.loc")
-pvalues <- readRDS("Data/EWAS27_pvalues.RDs")
+pvalues <- readRDS("Data/EWAS27_adjusted_pvalues.RDS")
 ## heatmap
 discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
 discovery <- as.data.frame(t(discovery))
@@ -387,19 +372,23 @@ save_plot("Figures/FigureS10.pdf", plot = fs10, base_width = 6, base_height = 6)
 ```{r overview of results, include=FALSE}
 selected_measure <- c("mean", "sd.b", "mad", "precision", "dhs", "chr", "refgene.pos",
                       "dip", "probe.type", "cpg.loc", "sd.m")
-pvalues <- readRDS("Data/EWAS20.pvalues.RDs")
-library(readxl)
+pvalues <- readRDS("Data/EWAS20_adjusted_pvalues.RDS")
 raw_probes <- rownames(pvalues[[1]])
 sig_probes <- lapply(pvalues, function(x)apply(x, 2, function(x)raw_probes[x < 0.05]))
 ```
+<br>
+<br>
+
 ##### 3.1.1 Method IHW
 ```{r}
 result <- sig_probes[["IHW"]]
 
 # compare with the results of GSE50660-originated paper
 paper_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", sheet = "GSE50660")
+
 overlap <- lapply(result, function(x)intersect(x, paper_results$CpGs))
 reccurence <- as.data.frame(lapply(overlap, function(x)sprintf("%s/%s", length(x), length(paper_results$CpGs))))
+
 (reccurence <- reccurence[, c("BH", "ST", selected_measure)])
 
 # extra findings by covariates
@@ -417,6 +406,9 @@ multiple_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", sheet =
 (overlap_2 <- lapply(extra_findings, function(x)intersect(x, multiple_results$CpGs)))
 IHW <- unique(unlist(extra_findings)) # save for later use
 ```
+<br>
+<br>
+
 ##### 3.1.2 Method CAMT
 ```{r}
 result <- sig_probes[["CAMT"]]
@@ -442,33 +434,9 @@ CAMT <- unique(unlist(extra_findings)) # save for later use
 <br>
 <br>
 
-#### 3.2 Intersetion of method IHW and CAMT
-```{r venn plot, fig.width=4, fig.height=3}
-# fs12 <- venn.diagram(list(IHW=IHW, CAMT=CAMT), 
-#                   filename = NULL,
-#                   fill = c("pink", "green"),
-#                   cat.pos = c(0, 0),
-#                   direct.area = FALSE
-#                   )
-fs12 <- draw.pairwise.venn(area1 = length(IHW),
-                           area2 = length(CAMT),
-                           cross.area = length(intersect(IHW, CAMT)),
-                           category = c("IHW", "CAMT"),
-                           fill = c("pink", "skyblue"),
-                           cat.pos = c(0, 0),
-                           scaled = FALSE)
-plot_grid(grobTree(fs12))
-```
-<br>
-<br>
-
-```{r, include=FALSE}
-save_plot("Figures/FigureS12.pdf", fs12)
-```
-
-#### 3.3 Compare the methylation level of cg18092474 between groups
+#### 3.2 Compare the methylation level of cg18092474 between groups
 ```{r}
-methy_data <- readRDS("Data/cg18092474.RDs")
+methy_data <- readRDS("Data/cg18092474.RDS")
 
 # count samples within each group
 table(methy_data$group)
@@ -498,4 +466,22 @@ fs11
 ```{r, include=FALSE}
 save_plot("Figures/FigureS11.pdf", plot = fs11, base_width = 5, base_height = 6)
 ```
+
+#### 3.3 Intersetion of method IHW and CAMT
+```{r venn plot, fig.width=4, fig.height=3}
+fs12 <- draw.pairwise.venn(area1 = length(IHW),
+                           area2 = length(CAMT),
+                           cross.area = length(intersect(IHW, CAMT)),
+                           category = c("IHW", "CAMT"),
+                           fill = c("pink", "skyblue"),
+                           cat.pos = c(0, 0),
+                           scaled = FALSE)
+```
+<br>
+<br>
+
+```{r, include=FALSE}
+save_plot("Figures/FigureS12.pdf", fs12)
+```
+
 

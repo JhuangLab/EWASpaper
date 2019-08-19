@@ -2,10 +2,10 @@ Args <- commandArgs()
 print(Args)
 experiment <- Args[6]
 
-setwd(paste0("/home/bailing/projects/ewas/analysis/", experiment))
+setwd(paste0("~/projects/ewas/analysis/", experiment))
 options(stringsAsFactors = FALSE)
 # build a new directory to save results
-cmd <- paste0("mkdir -p CovariatesTestV4")
+cmd <- paste0("mkdir -p CovariatesTest")
 system(cmd)
 
 pvalue_df <- read.csv("cpgResDf.sv.csv", header = TRUE, row.names = 1)
@@ -23,7 +23,7 @@ for(i in 1:ncol(covariates_df)){
   }
 }
 ## classfication of covariates
-contin.cv <- c("sd.b", "sd.m", "mean.b", "mad","dip","precision","pos", "icc.b", "icc.m")
+contin.cv <- c("sd.b", "sd.m", "mean", "mad","dip","precision","pos", "icc.b", "icc.m")
 cate.cv <- c("refgene.pos","cpg.loc","chr", "dhs", "direction", "probe.type")
 for(i in covariate.name.list){
   if(is.element(i, contin.cv)){
@@ -52,7 +52,7 @@ pvalue_df <- pvalue_df[index, ]
 p_value <- pvalue_df$P.value
 covariates_df <- covariates_df[index, ]
 
-source("/home/bailing/projects/ewas/code/CovariateTest/CovariateTest.R")
+source("~/projects/ewas/code/CovariateTest/CovariateTest.R")
 stat.o.a <- list()
 stat.o <- list()
 stat.p <- list()
@@ -100,12 +100,11 @@ stat.p <- as.data.frame(stat.p)
 p.cut.optim <- data.frame(measure = rep(names(p.cut.optim), unlist(lapply(p.cut.optim, length))),
                           cutoff = unlist(lapply(p.cut.optim, names), use.names = FALSE),
                           p.cut.optim = unlist(p.cut.optim, use.names = FALSE))
+
 # output stat.o, p.value, x.cut.optim and stat.o1, ect,into one dataframe
 result <- data.frame(stat.o = unlist(stat.o),
                      p.value = unlist(p.value))
-#x.cut.optim <- t(as.data.frame(x.cut.optim))
-#colnames(x.cut.optim) <- "x.cut.optim"
-#result <- merge(result, x.cut.optim, by.x = 0, by.y = 0, all = TRUE)
+
 result_numeric <- data.frame(stat.o1 = unlist(stat.o1),
                              p.value1 = unlist(p.value1),
                              stat.o2 = unlist(stat.o2),

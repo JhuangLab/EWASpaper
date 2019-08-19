@@ -1,13 +1,14 @@
-library(qvalue)
-library(splines)
-library(adaptMT)
+suppressPackageStartupMessages(library(adaptMT))
+suppressPackageStartupMessages(library(splines))
+suppressPackageStartupMessages(library(qvalue))
+
 
 Args <- commandArgs()
 print(Args)
 experiment <- Args[6]
 
 
-outputDir <- "/home/bailing/projects/ewas/analysis"
+outputDir <- "~/projects/ewas/analysis"
 setwd(paste0(outputDir, "/", experiment))
 
 cov.df <- read.csv("Covariates.csv", header = TRUE, row.names = 1)
@@ -20,10 +21,9 @@ for(i in 1:ncol(cov.df)){
 }
 
 ## classfication of covariates
-contin.cv <- c("sd.b", "sd.m", "mean.b", "mad","dip","precision","pos", "icc.b", "icc.m")
+contin.cv <- c("sd.b", "sd.m", "mean", "mad","dip","precision","pos", "icc.b", "icc.m")
 cate.cv <- c("refgene.pos","cpg.loc","chr", "dhs", "direction", "probe.type")
-statistic.cv <- c("sd.b", "sd.m", "mean.b", "icc.b", "icc.m",
-                  "mad","dip","precision","direction")
+statistic.cv <- c("sd.b", "sd.m", "mean", "icc.b", "icc.m", "mad","dip","precision","direction")
 CpGs.cv <- c("pos", "refgene.pos","cpg.loc","chr", "dhs", "probe.type")
 
 for(i in covariate.name.list){
@@ -50,10 +50,6 @@ endtime <- Sys.time()
 ST_time <- as.numeric(endtime - starttime, units = "secs")
 
 ### method AdaPT =============================
-# degree of freedom
-# res_glm$info
-# res_glm$qvals
-
 AdaPT_result <- list()
 AdaPT_time <- list()
 for(i in covariate.name.list){

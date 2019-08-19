@@ -34,37 +34,45 @@ selected_measure <- c("sd.b", "sd.m", "mean", "mad", "dip", "precision", "direct
                       "refgene.pos", "cpg.loc", "dhs", "probe.type", "icc.b", "icc.m")
 measure_col <- c("sd.b"="#7570B3", "sd.m"="#E7298A", "mean"="#A6CEE3", 
                  "mad"="#1F78B4", "dip"="#B2DF8A", "precision"="#FFFF00", "icc.b"="#FB9A99", 
-                 "icc.m"="#E31A1C", "refgene.pos"="#FDBF6F", "chr"="#A6761D", "cpg.loc"="#1B9E77", 
+                 "icc.m"="#E31A1C", "refgene.pos"="#FDBF6F", "chr"="#A6761D", "cpg.loc"="#1B9E77",
                  "dhs"="#949494", "direction"="#7FFFD4", "probe.type" ="#FFE4E1")
 ```
 
 ### 1.Dependency between p-value and covariate {#dependency}
 ***
+There are two representative examples for the dependency between p-value and covariate "mean". The silimar relationship for others covariates could be found in Figure S3.
+<br>
+<br>
+
 #### 1.1 panel A : differential methylation happens in low methylation region 
 ```{r enrichment in low methylation}
 # load data
-load("Data/EWAS33_covariates_pvalue.RData")
-rownames(cpg_result) <- cpg_result$CPG.Labels
-cpg_result <- cpg_result[rownames(covariates), ]
+EWAS33 <- readRDS("Data/dataset/EWAS33.RDS")
 i <- "mean"
 covariate_type <- "ordinal"
 
 # histogram of all raw p-values
-p1 <- ggplot(data = cpg_result, aes(x = P.value, y = stat(density))) + geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05 , size = 0.05, boundary = 0) + theme_classic()
+p1 <- ggplot(data = EWAS33, aes(x = P.value, y = stat(density))) + 
+  geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05 , size = 0.05, boundary = 0) +
+  theme_classic()
 p1
 
 # scatter plot of mean and p-values
-result <- ihw(cpg_result$P.value, covariates = covariates[[i]], alpha = 0.05, covariate_type = covariate_type)
+result <- ihw(EWAS33$P.value, covariates = EWAS33[[i]], alpha = 0.05, covariate_type = covariate_type)
 result_df <- as.data.frame(result)
 f <- ecdf(result_df$covariate)
 result_df$percentile_covariate <- f(result_df$covariate)
-p2 <- ggplot(data = result_df, aes(x = percentile_covariate, y = -log10(pvalue))) + geom_hex(bins = 100) + theme_classic()
+p2 <- ggplot(data = result_df, aes(x = percentile_covariate, y = -log10(pvalue))) + 
+  geom_hex(bins = 100) + 
+  theme_classic()
 p2
 
 # histogram stratified by covariate mean
 result_df$ihwGroup <- groups_by_filter(result_df$group, 5)
-p3 <- ggplot(data = result_df, aes(x = pvalue, y = stat(density))) + geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05, boundary = 0, size = 0.05) +
-      facet_wrap(~ ihwGroup, nrow = 1) + theme_classic()
+p3 <- ggplot(data = result_df, aes(x = pvalue, y = stat(density))) + 
+  geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05, boundary = 0, size = 0.05) +
+  facet_wrap(~ ihwGroup, nrow = 1) + 
+  theme_classic()
 p3
 
 # put figures together
@@ -77,28 +85,32 @@ panel_A <- plot_grid(top_row, plots[[2]], ncol = 1)
 #### 1.2 panel B: differential methylation happens in median methylation region 
 ```{r enrichment in median methylation}
 # load data
-load("Data/EWAS14_covariates_pvalue.RData")
-rownames(cpg_result) <- cpg_result$CPG.Labels
-cpg_result <- cpg_result[rownames(covariates), ]
+EWAS14 <- readRDS("Data/dataset/EWAS14.RDS")
 i <- "mean"
 covariate_type <- "ordinal"
 
 # histogram of all raw p-values
-p1 <- ggplot(data = cpg_result, aes(x = P.value, y = stat(density))) + geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05 , size = 0.05, boundary = 0) + theme_classic()
+p1 <- ggplot(data = EWAS14, aes(x = P.value, y = stat(density))) + 
+  geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05 , size = 0.05, boundary = 0) +
+  theme_classic()
 p1
 
 # scatter plot of mean and p-values
-result <- ihw(cpg_result$P.value, covariates = covariates[[i]], alpha = 0.05, covariate_type = covariate_type)
+result <- ihw(EWAS14$P.value, covariates = EWAS14[[i]], alpha = 0.05, covariate_type = covariate_type)
 result_df <- as.data.frame(result)
 f <- ecdf(result_df$covariate)
 result_df$percentile_covariate <- f(result_df$covariate)
-p2 <- ggplot(data = result_df, aes(x = percentile_covariate, y = -log10(pvalue))) + geom_hex(bins = 100) + theme_classic()
+p2 <- ggplot(data = result_df, aes(x = percentile_covariate, y = -log10(pvalue))) + 
+  geom_hex(bins = 100) + 
+  theme_classic()
 p2
 
 # histogram stratified by covariate mean
 result_df$ihwGroup <- groups_by_filter(result_df$group, 5)
-p3 <- ggplot(data = result_df, aes(x = pvalue, y = stat(density))) + geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05, boundary = 0, size = 0.05) +
-      facet_wrap(~ ihwGroup, nrow = 1) + theme_classic()
+p3 <- ggplot(data = result_df, aes(x = pvalue, y = stat(density))) + 
+  geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05, boundary = 0, size = 0.05) +
+  facet_wrap(~ ihwGroup, nrow = 1) + 
+  theme_classic()
 p3
 
 # put figures together
@@ -130,17 +142,20 @@ We performed simulations to assess the type I error and power of the proposed om
 ### 3.Omnibus test to assess the informativeness of covariates {#real}
 ***
 ```{r}
+set.seed(100)
 omnibus_result <- read.csv("Data/omnibus.result.csv", header = TRUE)
 f3 <- omnibus_result %>%
   filter(measure %in% selected_measure) %>%
   ggplot(aes(x = reorder(measure, -log10(p.value), FUN = median), y = -log10(p.value))) +
   geom_boxplot(aes(fill = measure), outlier.shape = NA) + 
-  geom_jitter(alpha = 0.3, size = 1, shape = 16) +
+  geom_jitter(alpha = 0.3, size = 1, shape = 16, width = 0.2) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
   coord_flip() +
   xlab("") +
   scale_fill_manual(values = measure_col) +
-  theme(legend.position = "none")
+  theme(legend.position = "none", 
+        axis.text = element_text(size = 8),
+        axis.title = element_text(size = 10))
 f3
 ```
 

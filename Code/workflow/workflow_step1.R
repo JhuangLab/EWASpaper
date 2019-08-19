@@ -1,40 +1,35 @@
+suppressPackageStartupMessages(library(GEOquery))
+suppressPackageStartupMessages(library(IlluminaHumanMethylation450kanno.ilmn12.hg19))
+suppressPackageStartupMessages(library(IlluminaHumanMethylation450kmanifest))
 suppressPackageStartupMessages(library(minfi))
+suppressPackageStartupMessages(library(minfiData))
 suppressPackageStartupMessages(library(limma))
 suppressPackageStartupMessages(library(CpGassoc))
 suppressPackageStartupMessages(library(SmartSVA))
-library(isva)
-suppressPackageStartupMessages(library(ggplot2))
-library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
-library(IlluminaHumanMethylation450kmanifest)
-library(ggpubr)
-library(RColorBrewer)
-library(openxlsx)
-library(minfiData)
-library(CpGFilter)
-library(grid)
-library(structSSI)
-library(GEOquery)
-library(hexbin)
-library(diptest)
-library(qvalue)
-library(cowplot)
-library(stringr)
+suppressPackageStartupMessages(library(isva))
+suppressPackageStartupMessages(library(openxlsx))
+suppressPackageStartupMessages(library(CpGFilter))
+suppressPackageStartupMessages(library(structSSI))
+suppressPackageStartupMessages(library(diptest))
+suppressPackageStartupMessages(library(qvalue))
+suppressPackageStartupMessages(library(stringr))
+
 
 Args <- commandArgs()
 experiment <- Args[6]
 
 
-#### load ref data (xReactiveProbes, ann450k, iccref) =====================
-load("/home/bailing/projects/ewas/analysis/reffile/ref.RData")
+#### load ref data (xReactiveProbes, ann450k) =====================
+load("~/projects/ewas/analysis/reffile/ref.RData")
 ann450k$refgene.pos <- sub(";.*","",ann450k$UCSC_RefGene_Group)
 ann450k$refgene.pos <- ifelse(ann450k$refgene.pos=="",
                               "Non_gene",ann450k$refgene.pos)
 
 #### set data directory and working directory =============================
-outputDir <- "/home/bailing/projects/ewas/analysis"
+outputDir <- "~/projects/ewas/analysis"
 cmd <- paste0("mkdir -p ", outputDir, "/", experiment)
 system(cmd)
-baseDir <- "/home/bailing/projects/ewas/data"
+baseDir <- "~/projects/ewas/data"
 setwd(paste0(outputDir, "/", experiment))
 dataset <- unlist(str_split(experiment, pattern = "_"))[1]
 datadir <- paste0(baseDir, "/", dataset)
@@ -214,7 +209,7 @@ Y.r <- t(resid(lm(t(mVals2) ~ targets2$Sample_Group)))
 n.sv <- EstDimRMT(Y.r, FALSE)$dim + 1
 sva.res <- smartsva.cpp(mVals2, mod, mod0=NULL, n.sv=n.sv)
 
-#### CpGassoc analysis and BH====================================================
+#### CpGassoc analysis ====================================================
 if(nlevels(as.factor(targets2$Sample_Group)) == 2){
   cpgRes <- cpg.assoc(bVals2, as.numeric(as.factor(targets2$Sample_Group)), logit.transform=TRUE)
   cpgRes.sv <- cpg.assoc(bVals2, as.numeric(as.factor(targets2$Sample_Group)),
@@ -232,41 +227,6 @@ cpgResDf.sv <- cpgRes.sv$results
 cpgResDf.sv <- na.omit(cpgResDf.sv)
 write.csv(cpgResDf.sv,file="cpgResDf.sv.csv")
 
-#Ploting the distribution of p-values
-pval_beforesva <- ggplot(NULL,aes(x=cpgResDf$P.value))+ 
-  geom_histogram(binwidth=0.01,fill = "#00AFBB",colour="black",size=0.2)+
-  theme(panel.background = element_rect(fill = "transparent",colour = NA), #Making the background white
-        axis.line=element_line(colour="black"), #Making the axis black
-        axis.text= element_text(size=12))+
-  scale_y_continuous(expand=c(0,0))+
-  labs(title=paste0(experiment,"   P-value_before SVA"))+
-  ylab("Count")+
-  xlab("P-value")
-
-pval_aftersva <- ggplot(NULL,aes(x=cpgResDf.sv$P.value))+ 
-  geom_histogram(binwidth=0.01,fill = "#00AFBB",colour="black",size=0.2)+
-  theme(panel.background = element_rect(fill = "transparent",colour = NA), #Making the background white
-        axis.line=element_line(colour="black"), #Making the axis black
-        axis.text= element_text(size=12))+
-  scale_y_continuous(expand=c(0,0))+
-  labs(title=paste0(experiment,"   P-value_after SVA"))+
-  ylab("Count")+
-  xlab("P-value")
-
-title <- ggtexttable(data.frame(dataset = experiment),
-                     theme = ttheme("blank", base_size = 15),rows = NULL)
-info <- ggtexttable(pheno_info, rows = NULL)
-
-pdf.filename <- paste0(experiment,"_pval_hist.pdf")
-pdf(pdf.filename,width=8,height=12)
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(7,6)))
-vplayout = function(x,y)viewport(layout.pos.row = x,layout.pos.col = y)
-print(title, vp = vplayout(1, 2))
-print(info, vp = vplayout(1, 4:5))
-print(pval_beforesva,vp = vplayout(2:3,2:5))
-print(pval_aftersva,vp = vplayout(5:6,2:5))
-dev.off()
 
 #### Present the datasets ==========================================
 phenotype <- paste0(unique(targets$Sample_Group), collapse = ";")
@@ -293,15 +253,9 @@ lambda.sv <- round(lambda.sv,3)
 pi0.sv <- pi0est(cpgResDf.sv$P.value,lambda = seq(0.05, 0.95, 0.05),pi0.method = "bootstrap")$pi0
 pi0.sv <- round(pi0.sv,3)
 
-starttime <- Sys.time()
 BH_pvalue <- p.adjust(cpgResDf.sv$P.value, method = "fdr")
-endtime <- Sys.time()
-BH_time <- endtime - starttime
 
-starttime <- Sys.time()
 ST_qvalue <- qvalue(cpgResDf.sv$P.value)
-endtime <- Sys.time()
-ST_time <- endtime - starttime
 
 BH_sig_probes.sv <- sum( BH_pvalue < 0.05)
 Holm_sig_probes.sv <- sum(p.adjust(cpgResDf.sv$P.value, method = "holm") < 0.05)
@@ -318,20 +272,20 @@ data.qc <- data.frame(ID = experiment,
                       lambda_before_sva = lambda,
                       pi0_before_sva = pi0,
                       BH_sig_probes_before_sva = BH_sig_probes,
-                      #                      ST_sig_probes_before_sva = ST_sig_probes,
+                      #ST_sig_probes_before_sva = ST_sig_probes,
                       Holm_sig_probes_before_sva = Holm_sig_probes,
                       lambda_after_sva = lambda.sv,
                       pi0_after_sva = pi0.sv,
                       BH_sig_probes_after_sva = BH_sig_probes.sv,
-                      #                      ST_sig_probes_after_sva = ST_sig_probes.sv,
+                      #ST_sig_probes_after_sva = ST_sig_probes.sv,
                       Holm_sig_probes_after_sva = Holm_sig_probes.sv
 )
 write.csv(data.qc,file="QC.csv", quote = FALSE, row.names = FALSE)
 
 #### Covariates ==================================================================
-covariate.name.list <- c("sd.b", "sd.m", "mean.b", "pos", "mad","dip",
+covariate.name.list <- c("sd.b", "sd.m", "mean", "pos", "mad","dip",
                          "precision", "refgene.pos","cpg.loc", "chr", "dhs", "probe.type")
-contin.cv <- c("sd.b", "sd.m", "var.b","var.m","mean.b", "mad","dip","precision","pos")
+contin.cv <- c("sd.b", "sd.m", "mean", "mad", "dip", "precision", "pos")
 cate.cv <- c("refgene.pos","cpg.loc","chr", "dhs", "probe.type")
 if(length(unique(targets$Rep_Design)) != length(targets$Rep_Design)){
    covariate.name.list <- c(covariate.name.list, "icc.m", "icc.b")
@@ -343,9 +297,7 @@ mVals2 <- mVals2[cpgResDf.sv$CPG.Labels, ]
 ## Continuous covariates
 sd.b <- apply(bVals2, 1, sd)
 sd.m <- apply(mVals2, 1, sd)
-var.b <- apply(bVals2, 1, var)
-var.m <- apply(mVals2, 1, var)
-mean.b <- apply(bVals2, 1, mean)
+mean <- apply(bVals2, 1, mean)
 
 # mad: Median absolute deviation of beta values
 mad <- apply(bVals2, 1, mad)
@@ -354,7 +306,7 @@ mad <- apply(bVals2, 1, mad)
 dip <- apply(bVals2, 1, dip)
 
 #Precision: inverse precision parameter
-precision <- 1/(mean.b*(1-mean.b)/sd.b^2-1)
+precision <- 1/(mean*(1-mean)/sd.b^2-1)
 
 pos <- ann450k$pos[match(cpgResDf.sv$CPG.Labels, rownames(ann450k))]
 
@@ -375,7 +327,6 @@ if(nlevels(as.factor(targets2$Sample_Group)) == 2 | is.numeric(targets2$Sample_G
 }
 
 
-
 ##Combining covariates
 cov.list <- list()
 for(i in 1:length(covariate.name.list)){
@@ -384,5 +335,5 @@ for(i in 1:length(covariate.name.list)){
 cov.df <- as.data.frame(cov.list)
 colnames(cov.df) <- covariate.name.list
 rownames(cov.df) <- rownames(bVals2)
-write.csv(cov.df,file="Covariates.csv")
+write.csv(cov.df, file="Covariates.csv")
 

@@ -1,7 +1,7 @@
 library(ggplot2)
 myqqplot <- function(experiment){
   ## tidy p value data
-  fn <- paste0("/home/bailing/projects/ewas/analysis/", experiment, "/")
+  fn <- paste0("~/projects/ewas/analysis/", experiment, "/")
   cpgResDf <- read.csv(paste0(fn, "cpgResDf.csv"), header = TRUE, row.names = 1)
   cpgResDf$label <- "Before SVA"
   cpgResDf$P.value[cpgResDf$P.value == 0] <- min(cpgResDf$P.value[cpgResDf$P.value != 0])
@@ -23,7 +23,7 @@ myqqplot <- function(experiment){
 }
 
 library(readxl)
-id_conversion <- as.data.frame(read_xlsx("/home/bailing/projects/ewas/doc/id_conversion.xlsx", sheet = "Sheet1"))
+id_conversion <- as.data.frame(read_xlsx("~/projects/ewas/doc/id_conversion.xlsx", sheet = "Sheet1"))
 dataset <- id_conversion$Raw_ID
 
 library(futile.logger)
@@ -35,4 +35,4 @@ for(s in dataset){
 }
 names(myplot) <- id_conversion$New_ID[match(names(myplot), id_conversion$Raw_ID)]
 
-save(myplot, file = "/home/bailing/projects/ewas/analysis/qqplot.RData")
+save(myplot, file = "~/projects/ewas/analysis/qqplot.RData")

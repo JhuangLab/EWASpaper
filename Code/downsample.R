@@ -1,14 +1,14 @@
 ######### define the true positive probes =====================================
 experiment <- "GSE80261"
-setwd(paste0("/home/bailing/projects/ewas/analysis/downsample/", experiment))
+setwd(paste0("~/projects/ewas/analysis/downsample/", experiment))
 options(stringsAsFactors = FALSE)
-data_file <- paste0("/home/bailing/projects/ewas/analysis/", experiment, "/cpgResDf.sv.csv")
+data_file <- paste0("~/projects/ewas/analysis/", experiment, "/cpgResDf.sv.csv")
 raw_pvalue <- read.csv(data_file, header = TRUE, row.names = 1)
 true_positive <- raw_pvalue$CPG.Labels[p.adjust(raw_pvalue$P.value, method = "bonferroni") < 0.05]
 write.table(true_positive, file = "defined_true_positive_probes.txt", quote = FALSE, row.names = FALSE)
 
 ######### resampling at various sample sizes===================================
-# run Rscript command in bash, for example "Rscript downsample.R GSE80261 10"
+# run following Rscript command in bash, for example "Rscript downsample.R GSE80261 10"
 
 ## setup sample size
 Args <- commandArgs()
@@ -17,9 +17,9 @@ experiment <- Args[6]
 sample_size <- as.numeric(Args[7])
 
 ## load beta values and phenotype information
-load(paste0("/home/bailing/projects/ewas/analysis/", experiment, "/bvals.rdata"))
+load(paste0("~/projects/ewas/analysis/", experiment, "/bvals.rdata"))
 library(readxl)
-targets <- read_xlsx(paste0("/home/bailing/projects/ewas/data/targets/", experiment, ".xlsx"))
+targets <- read_xlsx(paste0("~/projects/ewas/data/targets/", experiment, ".xlsx"))
 if(is.numeric(targets$Sample_Group)){
   print("This dataset has continous category !")
 }else{
@@ -29,7 +29,7 @@ if(is.numeric(targets$Sample_Group)){
 }
 
 ## read in the defined true positive probes list
-true_positive <- read.table(paste0("/home/bailing/projects/ewas/analysis/downsample/", experiment, "/defined_true_positive_probes.txt"),
+true_positive <- read.table(paste0("~/projects/ewas/analysis/downsample/", experiment, "/defined_true_positive_probes.txt"),
                             header = TRUE)
 true_positive <- true_positive$x
 
@@ -39,7 +39,7 @@ beta2m <- function(beta.values){
 }
 
 ## load 450k probes annoation information
-load("/home/bailing/projects/ewas/analysis/reffile/ref.RData")
+load("~/projects/ewas/analysis/reffile/ref.RData")
 ann450k$refgene_pos <- sub(";.*","",ann450k$UCSC_RefGene_Group)
 ann450k$refgene_pos <- ifelse(ann450k$refgene_pos=="",
                               "Non_gene",ann450k$refgene_pos)
@@ -51,7 +51,7 @@ cal_Power <- function(x){
 }
 
 ## setup empty data frame to save results
-cols_name <- c("BH", "ST", "sd.b", "sd.m", "mean.b", "pos", "mad",
+cols_name <- c("BH", "ST", "sd.b", "sd.m", "mean", "pos", "mad",
                "dip", "precision", "refgene.pos","cpg.loc", "chr", "dhs", 
                "probe.type", "direction")
 sensitivity <- matrix(NA, nrow = 100, ncol = 17, dimnames = list(NULL, cols_name))
@@ -64,7 +64,7 @@ library(SmartSVA)
 library(diptest)
 library(splines)
 # take method CAMT as an example
-source("/home/bailing/projects/ewas/code/CAMT/camt.cor.func.R")
+source("~/projects/ewas/code/CAMT/camt.cor.func.R")
 
 ## sampling and calculation
 for(j in 1:100){
@@ -167,7 +167,7 @@ for(j in 1:100){
     probes <- cpgResDf.sv$CPG.Labels[qvalue(cpgResDf.sv$P.value)$qvalues < 0.05]
     sensitivity[j, "ST"] <- cal_Power(probes)
     # continuous variates
-    for(s in c("sd.b", "sd.m", "mean.b", "mad", "dip", "precision", "pos")){
+    for(s in c("sd.b", "sd.m", "mean", "mad", "dip", "precision", "pos")){
       camt.obj <- camt(pvals = cpgResDf.sv$P.value, pi0.var = ns(get(s), df = 6), f1.var = ns(get(s), df = 6),
                        control.method = 'knockoff')
       probes <- cpgResDf.sv$CPG.Labels[camt.obj$fdr < 0.05]
@@ -183,6 +183,6 @@ for(j in 1:100){
   }, error = function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 
-write.csv(sensitivity, file = paste0("/home/bailing/projects/ewas/analysis/downsample/", experiment, "/CAMT/power_", sample_size, ".csv"),
+write.csv(sensitivity, file = paste0("~/projects/ewas/analysis/downsample/", experiment, "/CAMT/power_", sample_size, ".csv"),
           row.names = TRUE, quote = FALSE)
 
