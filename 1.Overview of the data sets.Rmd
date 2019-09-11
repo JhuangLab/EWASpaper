@@ -36,7 +36,7 @@ options(stringsAsFactors = FALSE)
 ***
 The 61 datasets come from 58 GEO datasets, their tissue sources and sample sizes are displayed.
 ```{r}
-sampleinfo <- read.csv("Data/DatasetInfo.csv", header = TRUE,  sep = "\t")
+sampleinfo <- read.csv("Data/DatasetInfo.csv", header = TRUE)
 sampleinfo <- arrange(sampleinfo, desc(Size))
 sampleinfo$Tissue <- factor(sampleinfo$Tissue, levels = unique(sampleinfo$Tissue))
 sampleinfo <- arrange(sampleinfo, Tissue, desc(Size))
