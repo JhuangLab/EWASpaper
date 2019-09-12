@@ -35,6 +35,7 @@ library(cowplot)
 library(VennDiagram)
 library(ggpubr)
 library(readxl)
+library(ggforce)
 
 measure_col <- c("BH"="#D55E00", "ST"="#CC79A7", "sd.b"="#7570B3", "sd.m"="#E7298A", "mean"="#A6CEE3", 
                  "mad"="#1F78B4", "dip"="#B2DF8A", "precision"="#FFFF00", "icc.b"="#FB9A99", 
@@ -178,12 +179,19 @@ gold_standard <- read.csv("Data/GoldStandardCpG.T4.csv", header = TRUE, row.name
 selected_cpg <- gold_standard$x[gold_standard$x %in% rownames(ranks[[1]])]
 
 reference_line <- median(ranks[[selected_method]][selected_cpg, "BH"])
-                         
+        
 panel_B <- ranks[[selected_method]][selected_cpg, ] %>%
   select(selected_measure) %>%
   melt(value.name = "Significance_rank") %>%
-  ggplot(aes(x = variable, y = Significance_rank)) +
-  geom_boxplot(aes(fill = variable)) + 
+  group_by(variable) %>%
+  mutate(significance_rank_median = median(Significance_rank)) %>%
+  ggplot(aes(x = reorder(variable, Significance_rank, FUN = median), y = Significance_rank, color = variable, fill = variable)) +
+  geom_sina(size = 0.25, alpha = 0.2, shape = 16) +
+  geom_hline(aes(yintercept = reference_line), color = "black", size = 0.35, linetype = "dashed") +
+  geom_segment(aes(x = variable, xend = variable,
+                   y = reference_line, yend = significance_rank_median),
+               size = 0.25, color = "black") +
+  stat_summary(fun.y = median, geom = "point", size = 1.5, shape = 21, color = "black") +
   scale_fill_manual(values = measure_col) +
   scale_color_manual(values = measure_col) +
   scale_x_discrete(limits = selected_measure) +
@@ -191,11 +199,6 @@ panel_B <- ranks[[selected_method]][selected_cpg, ] %>%
   theme_classic() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         legend.position = "none")
-
-panel_B <- panel_B + geom_segment(data = ggplot_build(panel_B)$data[[1]],
-                                  aes(x = xmin, xend = xmax, y = middle, yend = middle),
-                                  color = "white") +
-  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
 panel_B
 
 selected_method <- c("AdaPT", "BL", "CAMT", "FDRreg")
@@ -204,24 +207,32 @@ fs9 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
   mutate(method = sapply(str_split(variable, fixed("."), n = 2), function(x)unlist(x)[1]),
          measure = sapply(str_split(variable, fixed("."), n = 2), function(x)unlist(x)[2])) %>%
   filter(measure %in% selected_measure) %>%
-  ggplot(aes(x = measure, y = Significance_rank)) +
-  geom_boxplot(aes(fill = measure)) + 
-  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black", alpha = 0.5) +
-  facet_wrap(~method, nrow = 2, ncol = 2) +
+  select(Significance_rank, method, measure) %>%
+  group_by(method, measure) %>%
+  mutate(significance_rank_median = median(Significance_rank)) %>%
+  ggplot(aes(x = reorder(measure, Significance_rank, FUN = median), y = Significance_rank, color = measure, fill = measure)) +
+  geom_sina(size = 0.25, alpha = 0.2, shape = 16, show.legend = FALSE) +
+  geom_hline(aes(yintercept = reference_line), color = "black", size = 0.35, linetype = "dashed") +
+  geom_segment(aes(x = measure, xend = measure,
+                   y = reference_line, yend = significance_rank_median),
+               size = 0.25, color = "black") +
+  stat_summary(fun.y = median, geom = "point", size = 1.5, shape = 21, color = "black") +
   scale_fill_manual(values = measure_col) +
+  scale_color_manual(values = measure_col) +
   scale_x_discrete(limits = selected_measure) +
-  xlab("") + ylab("Significance Rank") + 
+  facet_wrap(~ method, nrow = 2) +
+  xlab("") + ylab("Significance Rank") + labs(fill = "") +
   theme_bw() +
   theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        legend.key.size = unit(0.5, "cm"))
+        axis.ticks.x = element_blank())
+
 fs9
 ```
 <br>
 <br>
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS9.pdf", fs9, base_width = 6.69)
+save_plot("Figures/FigureS9.pdf", fs9, base_width = 6.69, base_height = 5)
 ```
 
 #### 2.3 Boxplot of gold standard CpGs' significance orders by different methods
@@ -241,11 +252,9 @@ panel_C <- subset_rank[selected_cpg, ] %>%
   xlab("") + ylab("Significance Rank") + labs(fill = "method") +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 30, hjust = 0.5, vjust = 0.5),
-        legend.position = "none")
-panel_C <- panel_C + geom_segment(data = ggplot_build(panel_C)$data[[1]],
-                       aes(x = xmin, xend = xmax, y = middle, yend = middle), 
-                       color = "white") +
+        legend.position = "none") +
   geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
+
 panel_C
 ```
 <br>
@@ -313,8 +322,15 @@ reference_line <- median(ranks[[selected_method]][selected_cpg, "BH"])
 fs10_2 <- ranks[[selected_method]][selected_cpg, ] %>%
   select(selected_measure) %>%
   melt(value.name = "Significance_rank") %>%
-  ggplot(aes(x = variable, y = Significance_rank)) +
-  geom_boxplot(aes(fill = variable)) + 
+  group_by(variable) %>%
+  mutate(significance_rank_median = median(Significance_rank)) %>%
+  ggplot(aes(x = reorder(variable, Significance_rank, FUN = median), y = Significance_rank, color = variable, fill = variable)) +
+  geom_sina(size = 0.25, alpha = 0.2, shape = 16) +
+  geom_hline(aes(yintercept = reference_line), color = "black", size = 0.35, linetype = "dashed") +
+  geom_segment(aes(x = variable, xend = variable,
+                   y = reference_line, yend = significance_rank_median),
+               size = 0.25, color = "black") +
+  stat_summary(fun.y = median, geom = "point", size = 1.5, shape = 21, color = "black") +
   scale_fill_manual(values = measure_col) +
   scale_color_manual(values = measure_col) +
   scale_x_discrete(limits = selected_measure) +
@@ -323,10 +339,6 @@ fs10_2 <- ranks[[selected_method]][selected_cpg, ] %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         legend.position = "none")
 
-fs10_2 <- fs10_2 + geom_segment(data = ggplot_build(fs10_2)$data[[1]],
-                       aes(x = xmin, xend = xmax, y = middle, yend = middle), 
-                       color = "white") +
-  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
 fs10_2
 
 subset_rank <- as.data.frame(lapply(ranks, function(x)x[, "mean", drop = FALSE]))
@@ -343,11 +355,7 @@ fs10_3 <- subset_rank[selected_cpg, ] %>%
   xlab("") + ylab("Significance Rank") + labs(fill = "method") +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 30, hjust = 0.5, vjust = 0.5),
-        legend.position = "none")
-
-fs10_3 <- fs10_3 + geom_segment(data = ggplot_build(fs10_3)$data[[1]],
-                       aes(x = xmin, xend = xmax, y = middle, yend = middle), 
-                       color = "white") +
+        legend.position = "none") +
   geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
 
 fs10_3
