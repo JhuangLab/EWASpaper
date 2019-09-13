@@ -18,8 +18,9 @@ setwd("/Users/apple/Documents/GitHub/EWAS/")
 ***
 - [1. Run time for each method on real EWAS data](#runtime)
 - [2. Signal numbers: ST vs BH](#STvsBH)
-- [2. Overview of changes across methods and covariates](#overview)  
-- [3. An example demonstrated the strong informativeness of covariate mean](#example)
+- [3. Overview of changes across methods and covariates](#overview)  
+- [4. An example demonstrated the strong informativeness of covariate mean](#example)
+- [5. The relationship between omibus p-value and signal changes](#relationship)
 <br>
 <br>
 <br>
@@ -59,13 +60,14 @@ selected_methods <- c("AdaPT", "BL", "CAMT", "FDRreg", "IHW")
 selected_measure <- c("dip", "icc.b", "icc.m", "mad", "mean", "precision", "sd.b", "sd.m",
                          "dhs", "direction", "probe.type", "cpg.loc", "refgene.pos", "chr")
 
-panel_A <- runtime %>%
+fs5 <- runtime %>%
   filter(method %in% selected_methods, measure %in% selected_measure) %>%
   ggplot(aes(x = measure, y = mean, group = method, color = method)) +
-  geom_line(lwd = 0.3) +
-  geom_point(size = 0.025) +
-  geom_errorbar(aes(ymin = mean-1.96*se, ymax = mean+1.96*se), width = 0.2, lwd = 0.2) +
+  geom_line(lwd = 0.4) +
+  geom_point(size = 0.5) +
+  geom_errorbar(aes(ymin = mean-1.96*se, ymax = mean+1.96*se), width = 0.15, lwd = 0.35) +
   ylab("log10(seconds)") + xlab("") +
+  theme_bw() +
   theme(title = element_text(size = 10), 
          text = element_text(size = 8), 
          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 8), 
@@ -76,28 +78,33 @@ panel_A <- runtime %>%
    scale_x_discrete(limits = selected_measure) +
    scale_color_manual(values = method_col)
 
-panel_A
+fs5
+```
+
+```{r, include=FALSE}
+save_plot("Figures/FigureS5.pdf", fs5)
 ```
 
 ### 2. Signal numbers: ST vs BH {#STvsBH}
 ***
 ```{r, message=FALSE, warning=FALSE}
 reference_discovery <- read.csv("Data/reference_discovery.csv", header = TRUE)
-fs5 <- reference_discovery %>%
+fs6 <- reference_discovery %>%
   ggplot(aes(x = BH + 1, y = ST + 1)) +
   geom_point() +
   geom_abline(slope = 1, color = "red") +
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
   theme_bw() +
-  xlab("BH") + ylab("ST")
-fs5
+  xlab("BH") + ylab("ST") +
+  theme(title = element_text(size = 10), 
+         text = element_text(size = 8))
+fs6
 ```
+
 ```{r, include=FALSE}
-save_plot("Figures/FigureS5.pdf", fs5)
+save_plot("Figures/FigureS6.pdf", fs6)
 ```
-
-
 
 ### 2. Overview of changes across methods and covariates{#overview}
 ***
@@ -137,154 +144,110 @@ col_fun <- colorRamp2(c(-1, -0.5, 0, 0.5, 1), c("royalblue", "blue", "white", "r
 ST_color <- colorRamp2(c(0, 200, 1000, 10000), c("#DEEBF7", "#C6DBEF", "#6BAED6", "#08306B"))
 pi0_color <- colorRamp2(c(0.6, 0.9, 0.95, 1), c("#F7FCF5", "#A1D99B", "#41AB5D", "#00441B"))
 
-panel_B <- Heatmap(heatmap_data,
-                   name = "logFC",
-                   rect_gp = gpar(col = "grey", lwd = 0.05),
-                   cluster_rows = FALSE,
-                   cluster_columns = FALSE,
-                   col = col_fun, 
-                   
-                   left_annotation = rowAnnotation(
-                     ST = annotation_row$ST,
-                     pi0 = annotation_row$pi0,
-                     col = list(ST = ST_color,
-                                pi0 = pi0_color),
-                     simple_anno_size = unit(0.25, "cm"),
-                     annotation_name_gp = gpar(fontsize = 8),
-                     annotation_legend_param = list(title_gp = gpar(fontsize = 9),
-                     labels_gp = gpar(fontsize = 7))),
-                   
-                   top_annotation = columnAnnotation(
-                     rank = anno_boxplot(top_anno, outline = FALSE, 
-                    gp = gpar(fill = measure_col[covariate_order[-grep("icc", covariate_order)]]))),
-                   
-                   row_names_gp = gpar(fontsize = 5), 
-                   column_names_gp = gpar(fontsize = 8),
-                   column_split = rep(c("AdaPT", "BL", "CAMT", "FDRreg", "IHW"), each = 12),
-                   column_gap = unit(0, "mm"),
-                   column_labels = unlist(lapply(str_split(colnames(heatmap_data), pattern = "_"),
+f5 <- Heatmap(heatmap_data,
+              name = "logFC",
+              rect_gp = gpar(col = "grey", lwd = 0.05),
+              cluster_rows = FALSE,
+              cluster_columns = FALSE,
+              col = col_fun, 
+              left_annotation = rowAnnotation(
+                ST = annotation_row$ST,
+                pi0 = annotation_row$pi0,
+                col = list(ST = ST_color,
+                           pi0 = pi0_color),
+                simple_anno_size = unit(0.25, "cm"),
+                annotation_name_gp = gpar(fontsize = 8),
+                annotation_legend_param = list(title_gp = gpar(fontsize = 9),
+                                               labels_gp = gpar(fontsize = 7))),
+              top_annotation = columnAnnotation(
+                rank = anno_boxplot(top_anno, outline = FALSE, 
+                gp = gpar(fill = measure_col[covariate_order[-grep("icc", covariate_order)]]))),
+              row_names_gp = gpar(fontsize = 5), 
+              column_names_gp = gpar(fontsize = 8),
+              column_split = rep(c("AdaPT", "BL", "CAMT", "FDRreg", "IHW"), each = 12),
+              column_gap = unit(0, "mm"),
+              column_labels = unlist(lapply(str_split(colnames(heatmap_data), pattern = "_"),
                                                  function(x)x[[2]])),
-                   heatmap_legend_param = list(title_gp = gpar(fontsize = 9), 
-                                               labels_gp = gpar(fontsize = 7)))
+             heatmap_legend_param = list(title_gp = gpar(fontsize = 9),
+                                         labels_gp = gpar(fontsize = 7)))
 
-panel_B
-panel_B <- grid.grabExpr(draw(panel_B))
+f5
+```
+
+```{r, include=FALSE}
+save_plot("Figures/Figure5.pdf", grid.grabExpr(draw(f5)), base_width = 6.69, base_height = 6)
+```
+
+#### 2.2 Boxplot of logFC corresponding to the heatmap
+```{r}
+# Method AdaPT's performance is very different from other methods, so an alternative range is set for it.
+
+p1 <- plot_data %>%
+  filter(method == "AdaPT") %>%
+  ggplot(aes(x = measure, y = logFC)) +
+  geom_boxplot(aes(fill = measure), outlier.shape = NA, fatten = 1) +
+  scale_fill_manual(values = measure_col) +
+  coord_cartesian(ylim = c(-6, 6)) +
+  facet_wrap(~ method) +
+  theme_bw() +
+  xlab("") +
+  theme(title = element_text(size = 10),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position = "none")
+
+p2 <- plot_data %>%
+  filter(method != "AdaPT") %>%
+  ggplot(aes(x = measure, y = logFC)) +
+  geom_boxplot(aes(fill = measure), outlier.shape = NA, fatten = 1) +
+  scale_fill_manual(values = measure_col) +
+  coord_cartesian(ylim = c(-2, 2)) +
+  facet_wrap(~ method, nrow = 1, scales = "free_y") +
+  theme_bw() +
+  xlab("") + ylab("") +
+  theme(title = element_text(size = 10),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "right",
+        legend.justification = "center")
+
+fs7_1 <- plot_grid(p1, p2, rel_widths = c(1, 4))
+fs7_1
 ```
 <br>
 <br>
 
-#### 2.2 Method with the best informative covariate
+#### 2.3 Method with the best informative covariate
 ```{r, message=FALSE, warning=FALSE}
-panel_C <- left_join(discovery_number, reference_discovery, by = "dataset") %>%
+fs7_2 <- left_join(discovery_number, reference_discovery, by = "dataset") %>%
   mutate(logFC = log2((discovery + 1)/(ST + 1))) %>%
   group_by(dataset, method) %>%
   summarize(logFCmax = max(logFC)) %>%
   ggplot(aes(x = method, y = logFCmax, color = method)) +
-  geom_boxplot(outlier.shape = NA, fatten = 1, lwd = 0.25) +
-  geom_sina(size = 1, alpha = 0.2, shape = 16) +
+  geom_boxplot(outlier.shape = NA, fatten = 1, lwd = 0.3) +
+  geom_sina(size = 1, alpha = 0.5, shape = 16) +
+  coord_cartesian(ylim = c(-2, 3)) +
   scale_color_manual(values = method_col) +
+  theme_bw() +
   theme(legend.position = "none", 
         axis.text.x = element_text(size = 8),
         axis.text.y = element_text(size = 8),
         title = element_text(size = 10)) +
   xlab("") + ylab("logFC")
 
-panel_C
-```
-<br>
-<br>
-
-#### 2.3 Boxplot of logFC corresponding to the heatmap
-```{r}
-fs6_1 <- plot_data %>%
-  ggplot(aes(x = measure, y = logFC)) +
-  geom_boxplot(aes(fill = measure), outlier.alpha = 0.1, outlier.size = 1, 
-               outlier.shape = 16, fatten = 1) +
-  scale_fill_manual(values = measure_col) +
-  facet_wrap(~method, nrow = 1, scales = "free_x") +
-  theme_bw() +
-  xlab("") +
-  theme(title = element_text(size = 10),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        legend.key.size = unit(0.3, "cm"),
-        legend.position = "top",
-        legend.justification = "center")
-fs6_1
-```
-<br>
-<br>
-
-#### 2.4 Signal number changes vs omnibus test p-value
-```{r, fig.width=6.69, fig.height=3.5, message=FALSE, warning=FALSE}
-omnibus_result <- read.csv("Data/omnibus.result.csv", header = TRUE)
-
-fs6_2 <- left_join(plot_data, omnibus_result) %>%
-  mutate(group = ifelse(p.value <= 0.001, "p<=0.001", ifelse(p.value <= 0.01, "p<=0.01", ifelse(p.value <= 0.05, "p<=0.05", "p>0.05")))) %>%
-  ggplot(aes(x = group, y = logFC)) +
-  geom_boxplot(aes(fill = group), outlier.alpha = 0.1, outlier.shape = 16, 
-               outlier.size = 1, fatten = 1) +
-  facet_wrap(~method, nrow = 1, scales = "free") +
-  theme_bw() +
-  theme(legend.position = "top") +
-  theme(title = element_text(size = 10),
-        axis.text = element_text(size = 8),
-        axis.text.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.ticks.x = element_blank())
-fs6_2
-
-
-# fs6_3 <- left_join(plot_data, omnibus_result) %>%
-#   mutate(group = ifelse(p.value <= 0.001, "p<=0.001", ifelse(p.value <= 0.01, "p<=0.01", "p>0.01"))) %>%
-#   ggplot(aes(x = group, y = logFC)) +
-#   geom_boxplot(aes(fill = group), outlier.alpha = 0.1, outlier.shape = 16, 
-#                outlier.size = 1, fatten = 1) +
-#   facet_wrap(~method, nrow = 1, scales = "free") +
-#   theme_bw() +
-#   theme(legend.position = "top") +
-#   theme(title = element_text(size = 10),
-#         axis.text = element_text(size = 8),
-#         axis.text.x = element_blank(),
-#         axis.title.x = element_blank(),
-#         axis.ticks.x = element_blank())
-# 
-# fs6_3
-
+fs7_2
 ```
 <br>
 <br>
 ```{r}
-fs6 <- plot_grid(fs6_1, fs6_2, align = "v", axis = "l", labels = "AUTO", ncol = 1,
-                 rel_heights = c(1.4, 1), label_size = 18)
-fs6
+fs7 <- plot_grid(fs7_1, fs7_2, labels = c("A", "B"), ncol = 1, label_size = 18)
+fs7
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS6.pdf", plot=fs6, base_width = 9, base_height = 6)
+save_plot("Figures/FigureS7.pdf", fs7, base_width = 6.69, base_height = 4)
 ```
-
-
-
-#### Organize figures into Figure 5
-```{r, fig.width=7, fig.height=8}
-top_row <- plot_grid(panel_A, panel_C,
-                     align = "h", axis = "b", 
-                     labels = c("A", "C"), label_size = 18,
-                     rel_widths = c(1.2, 1),
-                     nrow = 1)
-f5 <- plot_grid(top_row, panel_B, labels = c("", "B"), ncol = 1,
-                   rel_heights = 1:2, label_size = 18)
-f5
-```
-
-```{r, include=FALSE}
-save_plot("Figures/Figure5.pdf", plot = f5, base_width = 6.69, base_height = 9)
-```
-<br>
-<br>
-
-
 
 ### 4. An example demonstrated the strong informativeness of covariate mean {#example}
 ***
@@ -292,25 +255,70 @@ save_plot("Figures/Figure5.pdf", plot = f5, base_width = 6.69, base_height = 9)
 EWAS33 <- readRDS("Data/dataset/EWAS33.RDS")
 candidate_covariates <- c("sd.b", "mad", "mean", "precision")
 
-plot_data <- data.frame()
+EWAS33_data <- data.frame()
 for(s in candidate_covariates){
   df <- data.frame(covariate_value = EWAS33[[s]],
                    p_value = EWAS33$P.value)
   df$covariate <- s
   f <- ecdf(df$covariate_value)
   df$percentile_covariate <- f(df$covariate_value)
-  plot_data <- rbind(plot_data, df)
+  EWAS33_data <- rbind(EWAS33_data, df)
 }
 
-fs7 <- ggplot(data = plot_data, mapping = aes(x = percentile_covariate, y = -log10(p_value))) +
+fs8 <- ggplot(data = EWAS33_data, mapping = aes(x = percentile_covariate, y = -log10(p_value))) +
   geom_hex(bins = 100) + 
   facet_wrap(~covariate, nrow = 1) + 
   theme_bw() +
   theme(legend.key.size = unit(0.3, "cm"))
-fs7
+fs8
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS7.pdf", plot = fs7, base_width = 7, base_height = 2.5)
+save_plot("Figures/FigureS8.pdf", plot = fs8, base_width = 7, base_height = 2.5)
+```
+
+### 5. Signal number changes vs omnibus test p-value {#relationship}
+```{r, fig.width=6.69, fig.height=3.5, message=FALSE, warning=FALSE}
+omnibus_result <- read.csv("Data/omnibus.result.csv", header = TRUE)
+
+# Method AdaPT's performance is very different from other methods, so an alternative range is set for it.
+
+p1 <- left_join(plot_data, omnibus_result) %>%
+  filter(method == "AdaPT") %>%
+  mutate(group = factor(ifelse(p.value <= 0.001, "p<=0.001", ifelse(p.value <= 0.01, "0.001<p<=0.01", "p>0.01")),
+                        levels = c("p<=0.001", "0.001<p<=0.01", "p>0.01"))) %>%
+  ggplot(aes(x = group, y = logFC)) +
+  geom_boxplot(aes(fill = group), outlier.shape = NA, fatten = 1) +
+  coord_cartesian(ylim = c(-6, 6)) +
+  facet_wrap(~method, nrow = 1, scales = "free") +
+  theme_bw() +
+  theme(title = element_text(size = 10),
+        axis.text = element_text(size = 8),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position = "none")
+
+p2 <- left_join(plot_data, omnibus_result) %>%
+  filter(method != "AdaPT") %>%
+  mutate(group = factor(ifelse(p.value <= 0.001, "p<=0.001", ifelse(p.value <= 0.01, "0.001<p<=0.01", "p>0.01")),
+                        levels = c("p<=0.001", "0.001<p<=0.01", "p>0.01"))) %>%
+  ggplot(aes(x = group, y = logFC)) +
+  geom_boxplot(aes(fill = group), outlier.shape = NA, fatten = 1) +
+  coord_cartesian(ylim = c(-2, 2)) +
+  facet_wrap(~method, nrow = 1, scales = "free") +
+  theme_bw() +
+  theme(title = element_blank(),
+        axis.text = element_text(size = 8),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position = "right")
+
+fs9 <- plot_grid(p1, p2, rel_widths = c(1, 4))
+fs9
+```
+
+```{r, include=FALSE}
+save_plot("Figures/FigureS9.pdf", fs9, base_width = 6.69)
 ```
 
