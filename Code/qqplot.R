@@ -19,7 +19,7 @@ myqqplot <- function(experiment){
                           label = df$label,
                           exp.pvalue = round(-log10(df$exp.pvalue), 2)))
   ## ggplot
-  ggplot(data = df_plot, aes(x = exp.pvalue, y = P.value)) + geom_point(aes(color = label)) + geom_abline(intercept = 0, slope = 1) + xlab("Expected.-log10(p-value)") + ylab("Observed.-log10(p-value)") + theme_classic()
+  ggplot(data = df_plot, aes(x = exp.pvalue, y = P.value)) + geom_point(aes(color = label), size = 0.5) + geom_abline(intercept = 0, slope = 1) + xlab("Expected.-log10(p-value)") + ylab("Observed.-log10(p-value)") + theme_classic()
 }
 
 library(readxl)

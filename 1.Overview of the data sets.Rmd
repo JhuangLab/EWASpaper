@@ -27,7 +27,6 @@ setwd("/Users/apple/Documents/GitHub/EWAS/")
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(readxl)
-library(cowplot)
 library(ggpubr)
 options(stringsAsFactors = FALSE)
 ```
@@ -46,12 +45,13 @@ p1 <- ggplot(data = sampleinfo, aes(x = New_ID, y = Size, group = Tissue)) +
   geom_bar(aes(fill = Tissue), stat = "identity", width = 0.5) + 
   scale_fill_manual(values = my_palette) +
   theme_classic() + 
-  theme(axis.text.x = element_text(angle = 75, size = 4, hjust = 0, vjust = 0.1), 
+  theme(axis.text.x = element_text(angle = 75, size = 5, hjust = 0, vjust = 0.1), 
         axis.title.x = element_blank(),
         legend.position = "top",
         legend.key.size = unit(0.3, "cm"),
         title = element_text(size = 10),
-        text = element_text(size = 8))
+        axis.text.y = element_text(size = 8),
+        legend.text = element_text(size = 8))
 p1
 ```
 
@@ -68,13 +68,13 @@ for(i in 1:length(myplot)){
   myplots[[i]] <- myplot[[i]] + ggtitle(names(myplot)[i]) +
     theme(axis.title = element_text(size = 6), axis.text = element_text(size = 6), plot.title = element_text(hjust = 0.5, size = 8))
 }
-plots <- ggarrange(plotlist = myplots, ncol = 3, nrow = 5, common.legend = TRUE)
-# show the example of 15 datasets
+plots <- ggarrange(plotlist = myplots, ncol = 4, nrow = 4, common.legend = TRUE)
+# show the example of 16 datasets
 plots$`1`
 ```
 
 ```{r, include=FALSE}
-pdf("Figures/FigureS1.pdf", width = 6.69, height = 8.86)
+pdf("Figures/FigureS1.pdf", width = 6.69, height = 8)
 plots
 dev.off()
 ```

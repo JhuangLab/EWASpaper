@@ -54,8 +54,9 @@ covariate_type <- "ordinal"
 # histogram of all raw p-values
 p1 <- ggplot(data = EWAS33, aes(x = P.value, y = stat(density))) + 
   geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05 , size = 0.05, boundary = 0) +
-  theme_classic()
-p1
+  theme_classic() +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
 # scatter plot of mean and p-values
 result <- ihw(EWAS33$P.value, covariates = EWAS33[[i]], alpha = 0.05, covariate_type = covariate_type)
@@ -64,21 +65,24 @@ f <- ecdf(result_df$covariate)
 result_df$percentile_covariate <- f(result_df$covariate)
 p2 <- ggplot(data = result_df, aes(x = percentile_covariate, y = -log10(pvalue))) + 
   geom_hex(bins = 100) + 
-  theme_classic()
-p2
+  theme_classic() +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
 # histogram stratified by covariate mean
 result_df$ihwGroup <- groups_by_filter(result_df$group, 5)
 p3 <- ggplot(data = result_df, aes(x = pvalue, y = stat(density))) + 
   geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05, boundary = 0, size = 0.05) +
   facet_wrap(~ ihwGroup, nrow = 1) + 
-  theme_classic()
-p3
+  theme_classic()  +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
 # put figures together
 plots <- align_plots(p1, p3, align = "v", axis = "l")
 top_row <- plot_grid(plots[[1]], p2, nrow = 1, align = "h")
-panel_A <- plot_grid(top_row, plots[[2]], ncol = 1)
+panelA <- plot_grid(top_row, plots[[2]], ncol = 1)
+panelA
 ```
 <br>
 
@@ -92,8 +96,9 @@ covariate_type <- "ordinal"
 # histogram of all raw p-values
 p1 <- ggplot(data = EWAS14, aes(x = P.value, y = stat(density))) + 
   geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05 , size = 0.05, boundary = 0) +
-  theme_classic()
-p1
+  theme_classic()  +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
 # scatter plot of mean and p-values
 result <- ihw(EWAS14$P.value, covariates = EWAS14[[i]], alpha = 0.05, covariate_type = covariate_type)
@@ -102,27 +107,30 @@ f <- ecdf(result_df$covariate)
 result_df$percentile_covariate <- f(result_df$covariate)
 p2 <- ggplot(data = result_df, aes(x = percentile_covariate, y = -log10(pvalue))) + 
   geom_hex(bins = 100) + 
-  theme_classic()
-p2
+  theme_classic()  +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
 # histogram stratified by covariate mean
 result_df$ihwGroup <- groups_by_filter(result_df$group, 5)
 p3 <- ggplot(data = result_df, aes(x = pvalue, y = stat(density))) + 
   geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05, boundary = 0, size = 0.05) +
   facet_wrap(~ ihwGroup, nrow = 1) + 
-  theme_classic()
-p3
+  theme_classic() +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
 
 # put figures together
 plots <- align_plots(p1, p3, align = "v", axis = "l")
 top_row <- plot_grid(plots[[1]], p2, nrow = 1, align = "h")
-panel_B <- plot_grid(top_row, plots[[2]], ncol = 1)
+panelB <- plot_grid(top_row, plots[[2]], ncol = 1)
+panelB
 ```
 <br>
 
 #### 1.3 put all panels together
 ```{r put figures together, fig.width=6.69, fig.height=8}
-fs2 <- plot_grid(panel_A, panel_B, ncol = 1, align = "vl", labels = c("A", "B"), label_size = 18)
+fs2 <- plot_grid(panelA, panelB, ncol = 1, align = "vl", labels = c("A", "B"), label_size = 18)
 fs2
 ```
 
@@ -153,6 +161,7 @@ f3 <- omnibus_result %>%
   coord_flip() +
   xlab("") +
   scale_fill_manual(values = measure_col) +
+  theme_classic() +
   theme(legend.position = "none", 
         axis.text = element_text(size = 8),
         axis.title = element_text(size = 10))

@@ -70,7 +70,7 @@ cdata <- plyr::ddply(IHW_power, c("measure", "sample_size"), summarise,
 f6 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width = 0.8, 
                position = position_dodge(width = 0.5),
-               lwd = 0.4) +
+               lwd = 0.5) +
   geom_point(position = position_dodge(width = 0.5), size = 0.5, shape = 16) +
   scale_color_manual(values = measure_col) +
   xlab("Sample Size") + ylab("Percentage") +
@@ -104,10 +104,10 @@ cdata <- plyr::ddply(CAMT_power, c("measure", "sample_size"), summarise,
 fs10 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width = 0.8, 
                position = position_dodge(width = 0.5),
-               lwd = 0.4) +
+               lwd = 0.5) +
   geom_point(position = position_dodge(width = 0.5), size = 0.5, shape = 16) +
   scale_color_manual(values = measure_col) +
-  xlab("Sample Size") + ylab("percentage") +
+  xlab("Sample Size") + ylab("Percentage") +
   theme_bw() +
   theme(axis.title = element_text(size = 10),
         axis.text = element_text(size = 8),
@@ -146,7 +146,7 @@ col_fun = colorRamp2(c(-200, -100, 0, 200),
                      c("royalblue", "blue", "white", "red"), 
                      space = "RGB")
 panel_A <- Heatmap(plot_data,
-        name = "color key",
+        name = "Color Key",
         col = col_fun,
         rect_gp = gpar(col = "grey", lwd = 0.25),
         cell_fun = function(j, i, x, y, width, height, fill){
@@ -176,7 +176,7 @@ selected_method <- "IHW"
 gold_standard <- read.csv("Data/GoldStandardCpG.T4.csv", header = TRUE, row.names = 1)
 selected_cpg <- gold_standard$x[gold_standard$x %in% rownames(ranks[[1]])]
 
-reference_line <- median(ranks[[selected_method]][selected_cpg, "BH"])
+reference_line <- median(ranks[[selected_method]][selected_cpg, "ST"])
         
 panel_B <- ranks[[selected_method]][selected_cpg, ] %>%
   select(selected_measure) %>%
@@ -185,7 +185,7 @@ panel_B <- ranks[[selected_method]][selected_cpg, ] %>%
   mutate(significance_rank_median = median(Significance_rank)) %>%
   ggplot(aes(x = reorder(variable, Significance_rank, FUN = median), y = Significance_rank, color = variable, fill = variable)) +
   geom_sina(size = 0.25, alpha = 0.2, shape = 16) +
-  geom_hline(aes(yintercept = reference_line), color = "black", size = 0.35, linetype = "dashed") +
+  geom_hline(aes(yintercept = reference_line), color = "black", size = 0.5, linetype = "dashed") +
   geom_segment(aes(x = variable, xend = variable,
                    y = reference_line, yend = significance_rank_median),
                size = 0.25, color = "black") +
@@ -195,7 +195,8 @@ panel_B <- ranks[[selected_method]][selected_cpg, ] %>%
   scale_x_discrete(limits = selected_measure) +
   xlab("") + ylab("Significance Rank") + labs(fill = "") +
   theme_classic() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8),
+        axis.title = element_text(size = 10),
         legend.position = "none")
 panel_B
 
@@ -210,7 +211,7 @@ fs11 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
   mutate(significance_rank_median = median(Significance_rank)) %>%
   ggplot(aes(x = reorder(measure, Significance_rank, FUN = median), y = Significance_rank, color = measure, fill = measure)) +
   geom_sina(size = 0.25, alpha = 0.2, shape = 16, show.legend = FALSE) +
-  geom_hline(aes(yintercept = reference_line), color = "black", size = 0.35, linetype = "dashed") +
+  geom_hline(aes(yintercept = reference_line), color = "black", size = 0.5, linetype = "dashed") +
   geom_segment(aes(x = measure, xend = measure,
                    y = reference_line, yend = significance_rank_median),
                size = 0.25, color = "black") +
@@ -222,7 +223,9 @@ fs11 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
   xlab("") + ylab("Significance Rank") + labs(fill = "") +
   theme_bw() +
   theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_text(size = 8),
+        axis.title.y = element_text(size = 10))
 
 fs11
 ```
@@ -244,14 +247,15 @@ panel_C <- subset_rank[selected_cpg, ] %>%
   select(selected_method) %>%
   melt(value.name = "Significance_rank") %>%
   ggplot(aes(x = variable, y = Significance_rank)) +
-  geom_boxplot(aes(fill = variable), width = 0.72) +
+  geom_boxplot(aes(fill = variable), width = 0.72, fatten = 1) +
   scale_fill_manual(values = method_col) + 
   scale_x_discrete(limits = selected_method) +
   xlab("") + ylab("Significance Rank") + labs(fill = "method") +
   theme_classic() +
-  theme(axis.text.x = element_text(angle = 30, hjust = 0.5, vjust = 0.5),
+  theme(axis.text.x = element_text(angle = 30, hjust = 0.5, vjust = 0.5, size = 8),
+        axis.title = element_text(size = 10),
         legend.position = "none") +
-  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
+  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black", size = 0.5)
 
 panel_C
 ```
@@ -289,7 +293,7 @@ cell_lable <- paste0(round(plot_data, 0), "%")
 cell_lable <- matrix(cell_lable, nrow = nrow(plot_data), ncol = ncol(plot_data))
 col_fun = colorRamp2(c(-100, 0, 200), c("blue", "white", "red"), space = "RGB")
 fs12_1 <- Heatmap(plot_data,
-        name = "color key",
+        name = "Color Key",
         col = col_fun,
         rect_gp = gpar(col = "grey", lwd = 0.25),
         cell_fun = function(j, i, x, y, width, height, fill){
@@ -315,7 +319,7 @@ selected_method <- "IHW"
 gold_standard <- read.csv("Data/GoldStandardCpG.T4.csv", header = TRUE, row.names = 1)
 selected_cpg <- gold_standard$x[gold_standard$x %in% rownames(ranks[[1]])]
 
-reference_line <- median(ranks[[selected_method]][selected_cpg, "BH"])
+reference_line <- median(ranks[[selected_method]][selected_cpg, "ST"])
 
 fs12_2 <- ranks[[selected_method]][selected_cpg, ] %>%
   select(selected_measure) %>%
@@ -324,7 +328,7 @@ fs12_2 <- ranks[[selected_method]][selected_cpg, ] %>%
   mutate(significance_rank_median = median(Significance_rank)) %>%
   ggplot(aes(x = reorder(variable, Significance_rank, FUN = median), y = Significance_rank, color = variable, fill = variable)) +
   geom_sina(size = 0.25, alpha = 0.2, shape = 16) +
-  geom_hline(aes(yintercept = reference_line), color = "black", size = 0.35, linetype = "dashed") +
+  geom_hline(aes(yintercept = reference_line), color = "black", size = 0.5, linetype = "dashed") +
   geom_segment(aes(x = variable, xend = variable,
                    y = reference_line, yend = significance_rank_median),
                size = 0.25, color = "black") +
@@ -334,7 +338,8 @@ fs12_2 <- ranks[[selected_method]][selected_cpg, ] %>%
   scale_x_discrete(limits = selected_measure) +
   xlab("") + ylab("Significance Rank") + labs(fill = "") +
   theme_classic() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8),
+        axis.title = element_text(size = 10),
         legend.position = "none")
 
 fs12_2
@@ -347,14 +352,15 @@ fs12_3 <- subset_rank[selected_cpg, ] %>%
   select(selected_method) %>%
   melt(value.name = "Significance_rank") %>%
   ggplot(aes(x = variable, y = Significance_rank)) +
-  geom_boxplot(aes(fill = variable), width = 0.72) +
+  geom_boxplot(aes(fill = variable), width = 0.72, fatten = 1) +
   scale_fill_manual(values = method_col) + 
   scale_x_discrete(limits = selected_method) +
   xlab("") + ylab("Significance Rank") + labs(fill = "method") +
   theme_classic() +
-  theme(axis.text.x = element_text(angle = 30, hjust = 0.5, vjust = 0.5),
+  theme(axis.text.x = element_text(angle = 30, hjust = 0.5, vjust = 0.5, size = 8),
+        axis.title = element_text(size = 10),
         legend.position = "none") +
-  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black")
+  geom_hline(yintercept = reference_line, linetype = "dashed", color = "black", size = 0.5)
 
 fs12_3
 
@@ -461,6 +467,7 @@ fs13 <- methy_data %>%
   geom_segment(aes(x = 1, y = 0.8, xend = 1, yend = 0.9), size = 0.1) +
   geom_segment(aes(x = 3, y = 0.85, xend = 3, yend = 0.9), size = 0.1) +
   ylim(0, 1) +
+  xlab("Group") +
   theme_bw() + 
   theme(legend.position = "none") 
 fs13

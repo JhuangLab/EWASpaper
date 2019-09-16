@@ -175,7 +175,9 @@ f5
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/Figure5.pdf", grid.grabExpr(draw(f5)), base_width = 6.69, base_height = 6)
+pdf("Figures/Figure5.pdf", width = 6.69, height = 6)
+draw(f5)
+dev.off()
 ```
 
 #### 2.2 Boxplot of logFC corresponding to the heatmap
@@ -289,6 +291,7 @@ p1 <- left_join(plot_data, omnibus_result) %>%
                         levels = c("p<=0.001", "0.001<p<=0.01", "p>0.01"))) %>%
   ggplot(aes(x = group, y = logFC)) +
   geom_boxplot(aes(fill = group), outlier.shape = NA, fatten = 1) +
+  stat_summary(fun.y = mean, geom = "point", shape = 18, color = "black") +
   coord_cartesian(ylim = c(-6, 6)) +
   facet_wrap(~method, nrow = 1, scales = "free") +
   theme_bw() +
@@ -305,6 +308,7 @@ p2 <- left_join(plot_data, omnibus_result) %>%
                         levels = c("p<=0.001", "0.001<p<=0.01", "p>0.01"))) %>%
   ggplot(aes(x = group, y = logFC)) +
   geom_boxplot(aes(fill = group), outlier.shape = NA, fatten = 1) +
+  stat_summary(fun.y = mean, geom = "point", shape = 18, color = "black") +
   coord_cartesian(ylim = c(-2, 2)) +
   facet_wrap(~method, nrow = 1, scales = "free") +
   theme_bw() +
@@ -314,11 +318,11 @@ p2 <- left_join(plot_data, omnibus_result) %>%
         axis.ticks.x = element_blank(),
         legend.position = "right")
 
-fs9 <- plot_grid(p1, p2, rel_widths = c(1, 4))
+fs9 <- plot_grid(p1, p2, rel_widths = c(1, 4.5))
 fs9
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS9.pdf", fs9, base_width = 6.69)
+save_plot("Figures/FigureS9.pdf", fs9, base_width = 8)
 ```
 
