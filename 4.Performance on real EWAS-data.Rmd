@@ -60,13 +60,13 @@ selected_methods <- c("AdaPT", "BL", "CAMT", "FDRreg", "IHW")
 selected_measure <- c("dip", "icc.b", "icc.m", "mad", "mean", "precision", "sd.b", "sd.m",
                          "dhs", "direction", "probe.type", "cpg.loc", "refgene.pos", "chr")
 
-fs5 <- runtime %>%
+fs6 <- runtime %>%
   filter(method %in% selected_methods, measure %in% selected_measure) %>%
   ggplot(aes(x = measure, y = mean, group = method, color = method)) +
   geom_line(lwd = 0.4) +
   geom_point(size = 0.5) +
   geom_errorbar(aes(ymin = mean-1.96*se, ymax = mean+1.96*se), width = 0.15, lwd = 0.35) +
-  ylab("log10(seconds)") + xlab("") +
+  ylab("log10 Runtime(s)") + xlab("") +
   theme_bw() +
   theme(title = element_text(size = 10), 
          text = element_text(size = 8), 
@@ -78,18 +78,19 @@ fs5 <- runtime %>%
    scale_x_discrete(limits = selected_measure) +
    scale_color_manual(values = method_col)
 
-fs5
+fs6
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS5.pdf", fs5)
+save_plot("Figures/FigureS6.pdf", fs6)
 ```
 
 ### 2. Signal numbers: ST vs BH {#STvsBH}
-***
+*** 
+For each data set, the number of ST detected significant differential CpGs is always no less than that of BH. So the result of ST is used as reference in the comparison with other covariate-adaptive FDR control methods.
 ```{r, message=FALSE, warning=FALSE}
 reference_discovery <- read.csv("Data/reference_discovery.csv", header = TRUE)
-fs6 <- reference_discovery %>%
+fs7 <- reference_discovery %>%
   ggplot(aes(x = BH + 1, y = ST + 1)) +
   geom_point() +
   geom_abline(slope = 1, color = "red") +
@@ -99,16 +100,16 @@ fs6 <- reference_discovery %>%
   xlab("BH") + ylab("ST") +
   theme(title = element_text(size = 10), 
          text = element_text(size = 8))
-fs6
+fs7
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS6.pdf", fs6)
+save_plot("Figures/FigureS7.pdf", fs7)
 ```
 
 ### 2. Overview of changes across methods and covariates{#overview}
 ***
-#### 2.1 heatmap
+#### 2.1 Heatmap: Performance evaluation by signal changes
 ```{r heatmp, message=FALSE, fig.height=6, fig.width=7.5}
 discovery_number <- read.csv("Data/discovery_number.csv", header = TRUE)
 covariate_order <- c("mean", "sd.b", "mad", "precision", "sd.m", "icc.m", "cpg.loc",
@@ -144,7 +145,7 @@ col_fun <- colorRamp2(c(-1, -0.5, 0, 0.5, 1), c("royalblue", "blue", "white", "r
 ST_color <- colorRamp2(c(0, 200, 1000, 10000), c("#DEEBF7", "#C6DBEF", "#6BAED6", "#08306B"))
 pi0_color <- colorRamp2(c(0.6, 0.9, 0.95, 1), c("#F7FCF5", "#A1D99B", "#41AB5D", "#00441B"))
 
-f5 <- Heatmap(heatmap_data,
+f3 <- Heatmap(heatmap_data,
               name = "logFC",
               rect_gp = gpar(col = "grey", lwd = 0.05),
               cluster_rows = FALSE,
@@ -171,12 +172,12 @@ f5 <- Heatmap(heatmap_data,
              heatmap_legend_param = list(title_gp = gpar(fontsize = 9),
                                          labels_gp = gpar(fontsize = 7)))
 
-f5
+f3
 ```
 
 ```{r, include=FALSE}
-pdf("Figures/Figure5.pdf", width = 6.69, height = 6)
-draw(f5)
+pdf("Figures/Figure3.pdf", width = 6.69, height = 6)
+draw(f3)
 dev.off()
 ```
 
@@ -214,15 +215,15 @@ p2 <- plot_data %>%
         legend.position = "right",
         legend.justification = "center")
 
-fs7_1 <- plot_grid(p1, p2, rel_widths = c(1, 4))
-fs7_1
+fs8_1 <- plot_grid(p1, p2, rel_widths = c(1, 4))
+fs8_1
 ```
 <br>
 <br>
 
-#### 2.3 Method with the best informative covariate
+#### 2.3 Boxplot of logFC for each Method with the best informative covariate
 ```{r, message=FALSE, warning=FALSE}
-fs7_2 <- left_join(discovery_number, reference_discovery, by = "dataset") %>%
+fs8_2 <- left_join(discovery_number, reference_discovery, by = "dataset") %>%
   mutate(logFC = log2((discovery + 1)/(ST + 1))) %>%
   group_by(dataset, method) %>%
   summarize(logFCmax = max(logFC)) %>%
@@ -238,17 +239,17 @@ fs7_2 <- left_join(discovery_number, reference_discovery, by = "dataset") %>%
         title = element_text(size = 10)) +
   xlab("") + ylab("logFC")
 
-fs7_2
+fs8_2
 ```
 <br>
 <br>
 ```{r}
-fs7 <- plot_grid(fs7_1, fs7_2, labels = c("A", "B"), ncol = 1, label_size = 18)
-fs7
+fs8 <- plot_grid(fs8_1, fs8_2, labels = c("A", "B"), ncol = 1, label_size = 18)
+fs8
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS7.pdf", fs7, base_width = 6.69, base_height = 4)
+save_plot("Figures/FigureS8.pdf", fs8, base_width = 6.69, base_height = 4)
 ```
 
 ### 4. An example demonstrated the strong informativeness of covariate mean {#example}
@@ -267,19 +268,20 @@ for(s in candidate_covariates){
   EWAS33_data <- rbind(EWAS33_data, df)
 }
 
-fs8 <- ggplot(data = EWAS33_data, mapping = aes(x = percentile_covariate, y = -log10(p_value))) +
+fs9 <- ggplot(data = EWAS33_data, mapping = aes(x = percentile_covariate, y = -log10(p_value))) +
   geom_hex(bins = 100) + 
   facet_wrap(~covariate, nrow = 1) + 
   theme_bw() +
   theme(legend.key.size = unit(0.3, "cm"))
-fs8
+fs9
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS8.pdf", plot = fs8, base_width = 7, base_height = 2.5)
+save_plot("Figures/FigureS9.pdf", plot = fs9, base_width = 7, base_height = 2.5)
 ```
 
 ### 5. Signal number changes vs omnibus test p-value {#relationship}
+Three groups ("p<=0.001", "0.001<p<=0.01", "p>0.01") are classified according to omnibus test p-value. We explored the signal number changes accross the three groups.
 ```{r, fig.width=6.69, fig.height=3.5, message=FALSE, warning=FALSE}
 omnibus_result <- read.csv("Data/omnibus.result.csv", header = TRUE)
 
@@ -318,11 +320,11 @@ p2 <- left_join(plot_data, omnibus_result) %>%
         axis.ticks.x = element_blank(),
         legend.position = "right")
 
-fs9 <- plot_grid(p1, p2, rel_widths = c(1, 4.5))
-fs9
+fs10 <- plot_grid(p1, p2, rel_widths = c(1, 4.5))
+fs10
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS9.pdf", fs9, base_width = 8)
+save_plot("Figures/FigureS10.pdf", fs10, base_width = 8)
 ```
 

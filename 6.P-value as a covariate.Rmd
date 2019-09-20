@@ -43,7 +43,7 @@ selected_measure <- c("mean", "sd.b", "mad", "precision", "dhs", "direction",
 
 ### 1. Significant signals change across methods and covariates {#heatmap}
 ***
-```{r}
+```{r, fig.width=4, fig.height=5}
 pvalues <- readRDS("Data/pvalue.as.covariate.RDS")
 discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
 discovery <- as.data.frame(t(discovery))
@@ -54,35 +54,43 @@ ST <- unique(discovery$ST)
 plot_data <- discovery %>%
   select(c(selected_measure, "pvalue"))
 
-plot_data <- as.matrix((plot_data - ST)/ST)*100
+plot_data <- as.matrix((t(plot_data) - ST)/ST)*100
 cell_lable <- paste0(round(plot_data, 0), "%")
 cell_lable <- matrix(cell_lable, nrow = nrow(plot_data), ncol = ncol(plot_data))
 
 col_fun = colorRamp2(c(-200, 0, 400), c("royalblue", "white", "red"), space = "RGB")
 panel_A <- Heatmap(plot_data,
-        name = "color key",
+#        name = "Color Key",
         col = col_fun,
         rect_gp = gpar(col = "grey", lwd = 0.25),
         cell_fun = function(j, i, x, y, width, height, fill){
-          if(abs(plot_data[i, j]) > 1) grid.text(cell_lable[i, j], x, y, gp = gpar(fontsize = 8))
+          if(abs(plot_data[i, j]) > 1) grid.text(cell_lable[i, j], x, y, gp = gpar(fontsize = 6))
         },
         clustering_distance_rows = "euclidean",
         clustering_distance_columns = "euclidean",
         clustering_method_rows = "ward.D",
         clustering_method_columns = "ward.D",
-        heatmap_legend_param = list(labels_gp = gpar(fontsize = 6),
-                                    labels = c("-100%", 0, "200%", "400%")),
-        row_names_gp = gpar(fontsize = 10),
-        column_names_gp = gpar(fontsize = 10))
-draw(panel_A)
-panel_A <- grid.grabExpr(draw(panel_A))
-
+        show_row_dend = FALSE,
+        show_column_dend = FALSE,
+        heatmap_legend_param = list(title = "Color Key",
+                                    labels_gp = gpar(fontsize = 5),
+                                    labels = c("-100%", 0, "200%", "400%"),
+                                    direction = "horizontal",
+                                    title_position = "lefttop",
+                                    title_gp = gpar(fontsize = 8),
+                                    grid_height = unit(2, "mm"),
+                                    grid_width = unit(4, "mm")),
+        row_names_gp = gpar(fontsize = 8),
+        column_names_gp = gpar(fontsize = 6),
+        column_names_side ="top")
+draw(panel_A, heatmap_legend_side = "bottom")
+panel_A <- grid.grabExpr(draw(panel_A, heatmap_legend_side = "bottom"))
 ```
 
 ### 2. The performance of covariate p-value by method IHW {#IHW}
 ***
 #### 2.1 The intersections
-```{r, fig.height=6, fig.width=7}
+```{r, fig.height=4, fig.width=6, warning=FALSE, message=FALSE}
 raw_probes <- rownames(pvalues[[1]])
 sig_probes <- lapply(pvalues, function(x)apply(x, 2, function(x)raw_probes[x < 0.05]))
 selected_method <- "IHW"
@@ -111,7 +119,9 @@ selected_measure <- c(selected_measure, "pvalue", "ST")
 panel_B <- upset(upset_df,
       sets = selected_measure, 
       order.by = "freq",
-      queries = list(list(query = elements, params = list("EWAS28", "yes"), color = "red", active = TRUE)))
+      point.size = 1.5,
+      line.size = 0.7, 
+      mb.ratio = c(0, 1))
 
 panel_B <- as.ggplot(panel_B)
 panel_B
@@ -123,16 +133,20 @@ panel_B
 sigCpGs <- upset_list[["pvalue"]]
 gst <- gometh(sig.cpg=sigCpGs, all.cpg=raw_probes, collection = "GO", prior.prob = TRUE, array.type = "450K", plot.bias = FALSE)
 
-# Top 10 GO categories
+# Top 5 GO categories
 top10_GO <- topGO(gst, number=10)
 datatable(top10_GO, rownames = TRUE, filter= "none", options = list(pageLength = 5, scrollX=T))
 top10_GO$ratio <- top10_GO$DE / top10_GO$N
+# plot top 10 terms
 top10_GO$Term <- factor(top10_GO$Term, levels = as.character(top10_GO$Term[10:1]))
 panel_C <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) + 
   geom_col(aes(fill = FDR), width = 0.5) + 
   coord_flip() + 
-  theme_classic() + 
-  theme(legend.position = "none", axis.title.y = element_blank())
+  theme_bw() + 
+  ylab("Ratio") +
+  theme(legend.position = "none", 
+        axis.title.y = element_blank(),
+        axis.text = element_text(size = 6))
 panel_C
 
 # Top 10 KEGG categories
@@ -140,18 +154,15 @@ kegg <- gometh(sig.cpg = sigCpGs, all.cpg = raw_probes, collection = "KEGG", pri
 datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
 ```
 
-```{r, fig.height=9, fig.width=7}
-bottom_row <- ggdraw() +
-  draw_plot(panel_B, x = 0, y = 0, width = 1, height = 1) +
-  draw_plot(panel_C, x = 0.4, y= 0.45, width = 0.6, height = 0.5) +
-  draw_plot_label(c("B", "C"), x = c(0, 0.4), y = c(1, 0.98), size = 18)
-f8 <- plot_grid(panel_A, bottom_row, labels = c("A", ""), ncol = 1,
-                  rel_heights = c(3, 6), label_size = 18)
-f8
+```{r, fig.height=6, fig.width=6}
+# organize figures
+top_row <- plot_grid(panel_A, panel_C, rel_widths = c(1, 1), 
+                     labels = c("A", "C"), label_size = 18)
+f6 <- plot_grid(top_row, panel_B, ncol = 1, labels = c("", "B"), label_size = 18)
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/Figure8.pdf", plot = f8, base_width = 7, base_height = 8.5)
+save_plot("Figures/Figure6.pdf", plot = f6, base_width = 6, base_height = 6)
 ```
 
 ### 3. GO and KEGG analysis for ST results {#ST}
@@ -194,12 +205,15 @@ EWAS28_sigprobes <- readRDS("Data/EWAS28_sigprobes.RDs")
 upset_df$EWAS28 <- ifelse(rownames(upset_df) %in% EWAS28_sigprobes, "yes", "no")
 
 # upset
-fs15_1 <- upset(upset_df,
+fs16_1 <- upset(upset_df,
       sets = selected_measure, 
       order.by = "freq",
-      queries = list(list(query = elements, params = list("EWAS28", "yes"), color = "red", active = TRUE)))
-fs15_1 <- as.ggplot(fs15_1)
-fs15_1
+      queries = list(list(query = elements, params = list("EWAS28", "yes"), color = "red", active = TRUE)),
+      mb.ratio = c(0.6, 0.4),
+      point.size = 1.5,
+      line.size = 0.5)
+fs16_1 <- as.ggplot(fs16_1)
+fs16_1
 ```
 
 #### 4.2 GO and KEGG enrichment analysis
@@ -215,34 +229,28 @@ top10_GO$Term <- factor(top10_GO$Term, levels = as.character(top10_GO$Term[10:1]
 
 options(digits = 2)
 
-fs15_2 <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) + 
+fs16_2 <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) + 
   geom_col(aes(fill = FDR), width = 0.5) + 
   coord_flip() + 
-  theme_classic() + 
-  scale_fill_continuous(guide = guide_colourbar(barwidth = 10, 
-                               barheight = 0.5,
-                               direction = "horizontal",
-                               title.position = "left")) +
-  theme(legend.position = c(-0.5, 1.1), 
-        legend.title = element_text(size = 8, vjust = 1),
-        legend.text = element_text(size = 6),
-        axis.title.y = element_blank())
-
+  theme_classic() +
+  theme(axis.title.y = element_blank(),
+        legend.title = element_text(size = 7),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(4, "mm"))
+fs16_2
 # Top 10 KEGG categories
 kegg <- gometh(sig.cpg = sigCpGs, all.cpg = raw_probes, collection = "KEGG", prior.prob=TRUE)
 datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
 ```
 
-```{r, fig.width=7, fig.height=6}
-fs15 <- ggdraw() +
-  draw_plot(fs15_1, x = 0, y = 0, width = 1, height = 1) +
-  draw_plot(fs15_2, x = 0.4, y= 0.4, width = 0.6, height = 0.5) +
-  draw_plot_label(c("A", "B"), x = c(0, 0.4), y = c(1, 0.98), size = 18)
 
-fs15
+```{r}
+# organize figures
+fs16 <- plot_grid(fs16_1, fs16_2, ncol = 1, labels = c("A", "B"), label_size = 18,
+                  rel_heights = c(2, 1))
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS15.pdf", plot = fs15, base_width = 6.69, base_height = 6)
+save_plot("Figures/FigureS16.pdf", plot = fs16, base_width = 6, base_height = 8)
 ```
 

@@ -67,8 +67,9 @@ cdata <- plyr::ddply(IHW_power, c("measure", "sample_size"), summarise,
                sd   = sd(Power, na.rm = TRUE),
                se   = sd / sqrt(N))
 
-f6 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
- geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width = 0.8, 
+f4 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
+ geom_errorbar(aes(ymin=mean-se, ymax=mean+se), 
+               width = 0.8, 
                position = position_dodge(width = 0.5),
                lwd = 0.5) +
   geom_point(position = position_dodge(width = 0.5), size = 0.5, shape = 16) +
@@ -80,13 +81,13 @@ f6 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measu
         legend.text = element_text(size = 6),
         legend.title = element_text(size = 8))
 
-f6
+f4
 ```
 <br>
 <br>
 
 ```{r, include=FALSE}
-ggsave("Figures/Figure6.pdf", f6, width = 7, height = 4, useDingbats = FALSE)
+ggsave("Figures/Figure4.pdf", f4, width = 7, height = 4, useDingbats = FALSE)
 ```
 
 #### 1.2 Method CAMT
@@ -101,7 +102,7 @@ cdata <- plyr::ddply(CAMT_power, c("measure", "sample_size"), summarise,
                sd   = sd(Power, na.rm = TRUE),
                se   = sd / sqrt(N))
 
-fs10 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
+fs11 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width = 0.8, 
                position = position_dodge(width = 0.5),
                lwd = 0.5) +
@@ -114,11 +115,11 @@ fs10 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = mea
         legend.text = element_text(size = 6),
         legend.title = element_text(size = 8))
 
-fs10
+fs11
 ```
 
 ```{r, include=FALSE}
-ggsave("Figures/FigureS10.pdf", fs10, width = 7, height = 4, useDingbats = FALSE)
+ggsave("Figures/FigureS11.pdf", fs11, width = 7, height = 4, useDingbats = FALSE)
 ```
 
 
@@ -201,7 +202,7 @@ panel_B <- ranks[[selected_method]][selected_cpg, ] %>%
 panel_B
 
 selected_method <- c("AdaPT", "BL", "CAMT", "FDRreg")
-fs11 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
+fs12 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
   melt(value.name = "Significance_rank") %>%
   mutate(method = sapply(str_split(variable, fixed("."), n = 2), function(x)unlist(x)[1]),
          measure = sapply(str_split(variable, fixed("."), n = 2), function(x)unlist(x)[2])) %>%
@@ -227,13 +228,13 @@ fs11 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
         axis.text.y = element_text(size = 8),
         axis.title.y = element_text(size = 10))
 
-fs11
+fs12
 ```
 <br>
 <br>
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS11.pdf", fs11, base_width = 6.69, base_height = 5)
+save_plot("Figures/FigureS12.pdf", fs12, base_width = 6.69, base_height = 5)
 ```
 
 #### 2.3 Boxplot of gold standard CpGs' significance orders by different methods
@@ -261,17 +262,17 @@ panel_C
 ```
 <br>
 <br>
-#### organize figures into Figure 7
+#### organize figures into Figure 5
 ```{r, fig.width=7, fig.height=8}
 bottom_row <- plot_grid(panel_B, panel_C, nrow = 1, align = "h", 
                         labels = c("B", "C"), label_size = 18)
-f7 <- plot_grid(panel_A, bottom_row, ncol = 1,
+f5 <- plot_grid(panel_A, bottom_row, ncol = 1,
                 labels = c("A", ""), label_size = 18)
-f7
+f5
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/Figure7.pdf", plot = f7, base_width = 6, base_height = 6)
+save_plot("Figures/Figure5.pdf", plot = f5, base_width = 6, base_height = 6)
 ```
 
 #### 2.5 Validation in another data set EWAS27
@@ -292,7 +293,7 @@ plot_data <- as.matrix((plot_data - ST)/ST)*100
 cell_lable <- paste0(round(plot_data, 0), "%")
 cell_lable <- matrix(cell_lable, nrow = nrow(plot_data), ncol = ncol(plot_data))
 col_fun = colorRamp2(c(-100, 0, 200), c("blue", "white", "red"), space = "RGB")
-fs12_1 <- Heatmap(plot_data,
+fs13_1 <- Heatmap(plot_data,
         name = "Color Key",
         col = col_fun,
         rect_gp = gpar(col = "grey", lwd = 0.25),
@@ -309,8 +310,8 @@ fs12_1 <- Heatmap(plot_data,
                                     title_gp = gpar(fontsize = 8),
                                     at = c(-100, 0, 100, 200),
                                     labels = c("-100%", 0, "100%", "200%")))
-draw(fs12_1)
-fs12_1 <- grid.grabExpr(draw(fs12_1))
+draw(fs13_1)
+fs13_1 <- grid.grabExpr(draw(fs13_1))
 
 ## boxplot
 ranks <- lapply(pvalues, function(x)as.data.frame(apply(x, 2, function(x)rank(x, ties.method = "average"))))
@@ -321,7 +322,7 @@ selected_cpg <- gold_standard$x[gold_standard$x %in% rownames(ranks[[1]])]
 
 reference_line <- median(ranks[[selected_method]][selected_cpg, "ST"])
 
-fs12_2 <- ranks[[selected_method]][selected_cpg, ] %>%
+fs13_2 <- ranks[[selected_method]][selected_cpg, ] %>%
   select(selected_measure) %>%
   melt(value.name = "Significance_rank") %>%
   group_by(variable) %>%
@@ -342,13 +343,13 @@ fs12_2 <- ranks[[selected_method]][selected_cpg, ] %>%
         axis.title = element_text(size = 10),
         legend.position = "none")
 
-fs12_2
+fs13_2
 
 subset_rank <- as.data.frame(lapply(ranks, function(x)x[, "mean", drop = FALSE]))
 colnames(subset_rank) <- names(ranks)
 
 selected_method <- c("CAMT", "AdaPT", "IHW", "BL", "FDRreg")
-fs12_3 <- subset_rank[selected_cpg, ] %>%
+fs13_3 <- subset_rank[selected_cpg, ] %>%
   select(selected_method) %>%
   melt(value.name = "Significance_rank") %>%
   ggplot(aes(x = variable, y = Significance_rank)) +
@@ -362,26 +363,26 @@ fs12_3 <- subset_rank[selected_cpg, ] %>%
         legend.position = "none") +
   geom_hline(yintercept = reference_line, linetype = "dashed", color = "black", size = 0.5)
 
-fs12_3
+fs13_3
 
 ```
 
 ```{r, fig.width=7, fig.height=6}
 ## put all figures together
-bottom_row <- plot_grid(fs12_2, fs12_3, labels = c("B", "C"), align = "h", nrow = 1, label_size = 18)
-fs12 <- plot_grid(fs12_1, bottom_row, labels = c("A", ""), ncol = 1, label_size = 18)
-fs12
+bottom_row <- plot_grid(fs13_2, fs13_3, labels = c("B", "C"), align = "h", nrow = 1, label_size = 18)
+fs13 <- plot_grid(fs13_1, bottom_row, labels = c("A", ""), ncol = 1, label_size = 18)
+fs13
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS12.pdf", plot = fs12, base_width = 6, base_height = 6)
+save_plot("Figures/FigureS13.pdf", plot = fs13, base_width = 6, base_height = 6)
 ```
 
 
 ### 3. Some well-known smoking-associated CpGs were recovered {#smoke}
 ***
 #### 3.1 Compare covariate-adaptive FDR methods' result with reported smoking-related CpGs
-```{r overview of results, include=FALSE}
+```{r overview of results}
 selected_measure <- c("mean", "sd.b", "mad", "precision", "dhs", "chr", "refgene.pos",
                       "dip", "probe.type", "cpg.loc", "sd.m")
 pvalues <- readRDS("Data/EWAS20_adjusted_pvalues.RDS")
@@ -456,7 +457,7 @@ table(methy_data$group)
 <br>
 
 ```{r}
-fs13 <- methy_data %>%
+fs14 <- methy_data %>%
   ggplot(aes(x = group, y = bVals, fill = group)) + 
   stat_boxplot(geom = "errorbar", width = 0.3) + 
   geom_boxplot(width = 0.6) + 
@@ -470,19 +471,19 @@ fs13 <- methy_data %>%
   xlab("Group") +
   theme_bw() + 
   theme(legend.position = "none") 
-fs13
+fs14
 ```
 <br>
 <br>
 
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS13.pdf", plot = fs13, base_width = 5, base_height = 6)
+save_plot("Figures/FigureS14.pdf", plot = fs14, base_width = 5, base_height = 6)
 ```
 
 #### 3.3 Intersetion of method IHW and CAMT
 ```{r venn plot, fig.width=4, fig.height=3}
-fs14 <- draw.pairwise.venn(area1 = length(IHW),
+fs15 <- draw.pairwise.venn(area1 = length(IHW),
                            area2 = length(CAMT),
                            cross.area = length(intersect(IHW, CAMT)),
                            category = c("IHW", "CAMT"),
@@ -494,7 +495,7 @@ fs14 <- draw.pairwise.venn(area1 = length(IHW),
 <br>
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS14.pdf", fs14)
+save_plot("Figures/FigureS15.pdf", fs15)
 ```
 
 

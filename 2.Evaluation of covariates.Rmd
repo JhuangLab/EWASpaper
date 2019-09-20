@@ -17,8 +17,8 @@ setwd("/Users/apple/Documents/GitHub/EWAS/")
 ## Contents
 ***
 - [1.Dependency between p-value and covariate](#dependency)
-- [2.Omnibus test on simulated data](#simulated)
-- [3.Omnibus test to assess the informativeness of covariates](#real)
+- [2.Comparison of Omnibus test and naïve test](#simulated)
+- [3.Omnibus test to assess the informativeness of EWAS-related covariates](#real)
 <br>
 <br>
 <br>
@@ -30,6 +30,8 @@ library(tidyverse)
 library(readxl)
 library(cowplot)
 library(IHW)
+library(ggforce)
+
 selected_measure <- c("sd.b", "sd.m", "mean", "mad", "dip", "precision", "direction", "chr",
                       "refgene.pos", "cpg.loc", "dhs", "probe.type", "icc.b", "icc.m")
 measure_col <- c("sd.b"="#7570B3", "sd.m"="#E7298A", "mean"="#A6CEE3", 
@@ -40,7 +42,7 @@ measure_col <- c("sd.b"="#7570B3", "sd.m"="#E7298A", "mean"="#A6CEE3",
 
 ### 1.Dependency between p-value and covariate {#dependency}
 ***
-There are two representative examples for the dependency between p-value and covariate "mean". The silimar relationship for others covariates could be found in Figure S3.
+There are two representative examples for the dependency between p-value and covariate "mean". The silimar relationship for other covariates could be found in Figure S3.
 <br>
 <br>
 
@@ -130,33 +132,31 @@ panelB
 
 #### 1.3 put all panels together
 ```{r put figures together, fig.width=6.69, fig.height=8}
-fs2 <- plot_grid(panelA, panelB, ncol = 1, align = "vl", labels = c("A", "B"), label_size = 18)
-fs2
+fs3 <- plot_grid(panelA, panelB, ncol = 1, align = "vl", labels = c("A", "B"), label_size = 18)
+fs3
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS2.pdf", fs2, base_width = 6.69, base_height = 8)
+save_plot("Figures/FigureS3.pdf", fs3, base_width = 6.69, base_height = 8)
 ```
 
-### 2.Omnibus test on simulated data {#simulated}
+### 2.Comparison of Omnibus test and naïve test {#simulated}
 ***
 We performed simulations to assess the type I error and power of the proposed omnibus test and benchmarked against the naïve tests.
 <br>
-![](Figures/Figure2.png)
+![](Figures/Figure1.png)
 <br>
 
-
-
-### 3.Omnibus test to assess the informativeness of covariates {#real}
+### 3.Omnibus test to assess the informativeness of EWAS-related covariates {#real}
 ***
+We use omnibus test to evaluate the 14 EWAS-related covariates' informativeness for each EWAS data set. Covariates with p-value less than 0.05 are thought to be informative.
 ```{r}
-set.seed(100)
 omnibus_result <- read.csv("Data/omnibus.result.csv", header = TRUE)
-f3 <- omnibus_result %>%
+p <- omnibus_result %>%
   filter(measure %in% selected_measure) %>%
   ggplot(aes(x = reorder(measure, -log10(p.value), FUN = median), y = -log10(p.value))) +
-  geom_boxplot(aes(fill = measure), outlier.shape = NA) + 
-  geom_jitter(alpha = 0.3, size = 1, shape = 16, width = 0.2) +
+  geom_boxplot(aes(fill = measure), outlier.shape = NA, fatten = 1) + 
+  geom_sina(size = 1, alpha = 0.3, shape = 16) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
   coord_flip() +
   xlab("") +
@@ -165,10 +165,12 @@ f3 <- omnibus_result %>%
   theme(legend.position = "none", 
         axis.text = element_text(size = 8),
         axis.title = element_text(size = 10))
-f3
+p
 ```
 
 ```{r, include=FALSE}
-ggsave(filename = "Figures/Figure3.pdf", f3, width = 5, height = 5, useDingbats = FALSE)
+f1 <- ggdraw() + draw_image("Figures/Figure2.png", width = 4, height = 4)
+f1 <- plot_grid(f1, p, nrow = 1)
+ggsave(filename = "Figures/Figure1.pdf", f1, useDingbats = FALSE)
 ```
 

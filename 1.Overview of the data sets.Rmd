@@ -33,7 +33,7 @@ options(stringsAsFactors = FALSE)
 
 ### 1. Tissue distribution of EWAS data sets {#tissue}
 ***
-The 61 datasets come from 58 GEO datasets, their tissue sources and sample sizes are displayed.
+The 61 EWAS data sets' tissue sources and sample sizes are displayed in the following plot, and the majority data sets are form blood.
 ```{r}
 sampleinfo <- read.csv("Data/DatasetInfo.csv", header = TRUE)
 sampleinfo <- arrange(sampleinfo, desc(Size))
@@ -41,7 +41,7 @@ sampleinfo$Tissue <- factor(sampleinfo$Tissue, levels = unique(sampleinfo$Tissue
 sampleinfo <- arrange(sampleinfo, Tissue, desc(Size))
 sampleinfo$New_ID <- factor(sampleinfo$New_ID, levels = unique(sampleinfo$New_ID))
 my_palette <- c("#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#E6AB02",  "#A6761D", "#A6CEE3", "#1F78B4", "#B2DF8A", "#FFFF00", "#FB9A99", "#E31A1C", "#949494", "#FDBF6F", "#FF7F00", "#CAB2D6", "#2F4F4F", "#7FFFD4", "#FFE4E1", "#00E5EE")
-p1 <- ggplot(data = sampleinfo, aes(x = New_ID, y = Size, group = Tissue)) +
+fs1 <- ggplot(data = sampleinfo, aes(x = New_ID, y = Size, group = Tissue)) +
   geom_bar(aes(fill = Tissue), stat = "identity", width = 0.5) + 
   scale_fill_manual(values = my_palette) +
   theme_classic() + 
@@ -52,15 +52,16 @@ p1 <- ggplot(data = sampleinfo, aes(x = New_ID, y = Size, group = Tissue)) +
         title = element_text(size = 10),
         axis.text.y = element_text(size = 8),
         legend.text = element_text(size = 8))
-p1
+fs1
 ```
 
 ```{r, include=FALSE}
-ggsave("Figures/Figure1.pdf", plot = p1, width = 5, height = 4, useDingbats = FALSE)  
+ggsave("Figures/FigureS1.pdf", plot = fs1, width = 5, height = 4, useDingbats = FALSE)  
 ```
 
 ### 2. QQ-plot of p-values {#qqplot}
 ***
+The genomic inflation of association p-values before and after surrogate variable analysis are shown as QQ-plot. As the source code about QQ-plot is provided in code folder, file qqplot.RData is not upload here beacuse the file size is too large.
 ```{r, results='hide', fig.width=6.69, fig.height=8.86}
 load("Data/qqplot.RData")
 myplots <- list()
@@ -74,10 +75,8 @@ plots$`1`
 ```
 
 ```{r, include=FALSE}
-pdf("Figures/FigureS1.pdf", width = 6.69, height = 8)
+pdf("Figures/FigureS2.pdf", width = 6.69, height = 8)
 plots
 dev.off()
 ```
-
-
 

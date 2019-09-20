@@ -23,9 +23,9 @@ setwd("/Users/apple/Documents/GitHub/EWAS/")
 
 ### 1. Performance on simulated data where differential CpGs were randomly distributed {#randomly}
 ***
-![](Figures/Figure4.png)
+![](Figures/Figure2.png)
 <br>
 
 ### 2. Performance on simulated data where differential CpGs were clustered {#clustered}
 ***
-![](Figures/FigureS4.png)
+![](Figures/FigureS5.png)
