@@ -44,7 +44,13 @@ selected_measure <- c("mean", "sd.b", "mad", "precision", "dhs", "direction",
 ### 1. Significant signals change across methods and covariates {#heatmap}
 ***
 ```{r, fig.width=4, fig.height=5}
-pvalues <- readRDS("Data/pvalue.as.covariate.RDS")
+# read in adjusted p-values to a list
+pvalues <- list()
+for(s in c("AdaPT", "BL", "CAMT", "FDRreg", "IHW")){
+  pvalues[[s]] <- readRDS(paste0("Data/pvalue_as_covariate_", s, ".RDS"))
+}
+
+# calculate the significant DMPs' number
 discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
 discovery <- as.data.frame(t(discovery))
 
@@ -60,7 +66,6 @@ cell_lable <- matrix(cell_lable, nrow = nrow(plot_data), ncol = ncol(plot_data))
 
 col_fun = colorRamp2(c(-200, 0, 400), c("royalblue", "white", "red"), space = "RGB")
 panel_A <- Heatmap(plot_data,
-#        name = "Color Key",
         col = col_fun,
         rect_gp = gpar(col = "grey", lwd = 0.25),
         cell_fun = function(j, i, x, y, width, height, fill){
@@ -96,27 +101,9 @@ sig_probes <- lapply(pvalues, function(x)apply(x, 2, function(x)raw_probes[x < 0
 selected_method <- "IHW"
 upset_list <- sig_probes[[selected_method]]
 
-# convert list to data frame
-selected <- unique(unlist(upset_list))
-upset_df <- as.data.frame(matrix(nrow = length(selected), ncol = length(upset_list),
-                                 dimnames = list(selected, names(upset_list))))
-for(i in 1:nrow(upset_df)){
-  for(j in 1:ncol(upset_df)){
-    if(rownames(upset_df)[i] %in% upset_list[[colnames(upset_df)[j]]]){
-      upset_df[i, j] <- 1
-    }else{
-      upset_df[i, j] <- 0
-    }
-  }
-}
-
-# add annotations for EWAS28 significant probes by method BH
-EWAS28_sigprobes <- readRDS("Data/EWAS28_sigprobes.RDS")
-upset_df$EWAS28 <- ifelse(rownames(upset_df) %in% EWAS28_sigprobes, "yes", "no")
-
 # upset
 selected_measure <- c(selected_measure, "pvalue", "ST")
-panel_B <- upset(upset_df,
+panel_B <- upset(fromList(upset_list),
       sets = selected_measure, 
       order.by = "freq",
       point.size = 1.5,

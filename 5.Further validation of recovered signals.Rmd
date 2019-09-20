@@ -129,11 +129,18 @@ ggsave("Figures/FigureS11.pdf", fs11, width = 7, height = 4, useDingbats = FALSE
 ```{r}
 selected_measure <- c("mean", "sd.b", "mad", "icc.m", "icc.b", "precision", "dhs", "direction",
                       "chr", "refgene.pos", "dip", "probe.type", "cpg.loc", "sd.m")
-pvalues <- readRDS("Data/EWAS45_adjusted_pvalues.RDS")
+
+# read in adjusted p-values' data into a list
+pvalues <- list()
+for(i in c("AdaPT", "BL", "CAMT", "FDRreg", "IHW")){
+  pvalues[[i]] <- readRDS(paste0("Data/EWAS45_", i, "_adjusted_pvalues.RDS"))
+}
+
+# calculate the number of significant DMPs
 discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
 discovery <- as.data.frame(t(discovery))
 
-# extract BH and ST signal numbers
+# extract BH and ST DMPs' numbers
 BH <- unique(discovery$BH)
 ST <- unique(discovery$ST)
 plot_data <- discovery %>%
@@ -278,7 +285,13 @@ save_plot("Figures/Figure5.pdf", plot = f5, base_width = 6, base_height = 6)
 #### 2.5 Validation in another data set EWAS27
 ```{r, message=FALSE}
 selected_measure <- c("mad", "mean", "sd.b", "precision", "sd.m", "dhs", "dip", "chr",  "direction", "probe.type", "refgene.pos", "cpg.loc")
-pvalues <- readRDS("Data/EWAS27_adjusted_pvalues.RDS")
+
+# read in adjusted p-values' data into a list
+pvalues <- list()
+for(i in c("AdaPT", "BL", "CAMT", "FDRreg", "IHW")){
+  pvalues[[i]] <- readRDS(paste0("Data/EWAS27_", i, "_adjusted_pvalues.RDS"))
+}
+
 ## heatmap
 discovery <- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x < 0.05)))))
 discovery <- as.data.frame(t(discovery))
@@ -317,7 +330,8 @@ fs13_1 <- grid.grabExpr(draw(fs13_1))
 ranks <- lapply(pvalues, function(x)as.data.frame(apply(x, 2, function(x)rank(x, ties.method = "average"))))
 
 selected_method <- "IHW"
-gold_standard <- read.csv("Data/GoldStandardCpG.T4.csv", header = TRUE, row.names = 1)
+gold_standard <- read.csv("Data/GoldStandardCpG.T4.csv", 
+                          header = TRUE, row.names = 1)
 selected_cpg <- gold_standard$x[gold_standard$x %in% rownames(ranks[[1]])]
 
 reference_line <- median(ranks[[selected_method]][selected_cpg, "ST"])
@@ -385,7 +399,13 @@ save_plot("Figures/FigureS13.pdf", plot = fs13, base_width = 6, base_height = 6)
 ```{r overview of results}
 selected_measure <- c("mean", "sd.b", "mad", "precision", "dhs", "chr", "refgene.pos",
                       "dip", "probe.type", "cpg.loc", "sd.m")
-pvalues <- readRDS("Data/EWAS20_adjusted_pvalues.RDS")
+
+# read in adjusted p-values' data into a list
+pvalues <- list()
+for(i in c("AdaPT", "BL", "CAMT", "FDRreg", "IHW")){
+  pvalues[[i]] <- readRDS(paste0("Data/EWAS20_", i, "_adjusted_pvalues.RDS"))
+}
+
 raw_probes <- rownames(pvalues[[1]])
 sig_probes <- lapply(pvalues, function(x)apply(x, 2, function(x)raw_probes[x < 0.05]))
 ```
@@ -397,7 +417,8 @@ sig_probes <- lapply(pvalues, function(x)apply(x, 2, function(x)raw_probes[x < 0
 result <- sig_probes[["IHW"]]
 
 # compare with the results of GSE50660-originated paper
-paper_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", sheet = "GSE50660")
+paper_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", 
+                           sheet = "GSE50660")
 
 overlap <- lapply(result, function(x)intersect(x, paper_results$CpGs))
 reccurence <- as.data.frame(lapply(overlap, function(x)sprintf("%s/%s", length(x), length(paper_results$CpGs))))
@@ -413,10 +434,14 @@ extra_findings <- lapply(result, function(x)setdiff(setdiff(x, BH), paper_result
 (extra_findings <- extra_findings[selected_measure])
 
 # see if the extra findings are in the list of other two papers
-race_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", sheet = "different_population")
+race_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", 
+                          sheet = "different_population")
 (overlap_1 <- lapply(extra_findings, function(x)intersect(x, race_results$CpGs)))
-multiple_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx", sheet = "multiple_reported")
+multiple_results <- read_xlsx("Data/Known smoking-associated CpGs.xlsx",
+                              sheet = "multiple_reported")
 (overlap_2 <- lapply(extra_findings, function(x)intersect(x, multiple_results$CpGs)))
+
+
 IHW <- unique(unlist(extra_findings)) # save for later use
 ```
 <br>
@@ -497,5 +522,3 @@ fs15 <- draw.pairwise.venn(area1 = length(IHW),
 ```{r, include=FALSE}
 save_plot("Figures/FigureS15.pdf", fs15)
 ```
-
-

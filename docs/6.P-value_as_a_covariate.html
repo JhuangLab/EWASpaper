@@ -11,7 +11,7 @@
 
 <meta name="author" content="Bai Ling" />
 
-<meta name="date" content="2019-09-19" />
+<meta name="date" content="2019-09-20" />
 
 <title>P-value as a covariate</title>
 
@@ -133,7 +133,7 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">P-value as a covariate</h1>
 <h4 class="author"><em>Bai Ling</em></h4>
-<h4 class="date"><em>19 September 2019</em></h4>
+<h4 class="date"><em>20 September 2019</em></h4>
 
 </div>
 
@@ -165,7 +165,13 @@ selected_measure &lt;- c(&quot;mean&quot;, &quot;sd.b&quot;, &quot;mad&quot;, &q
 <div id="heatmap" class="section level3">
 <h3>1. Significant signals change across methods and covariates</h3>
 <hr />
-<pre class="r"><code>pvalues &lt;- readRDS(&quot;Data/pvalue.as.covariate.RDS&quot;)
+<pre class="r"><code># read in adjusted p-values to a list
+pvalues &lt;- list()
+for(s in c(&quot;AdaPT&quot;, &quot;BL&quot;, &quot;CAMT&quot;, &quot;FDRreg&quot;, &quot;IHW&quot;)){
+  pvalues[[s]] &lt;- readRDS(paste0(&quot;Data/pvalue_as_covariate_&quot;, s, &quot;.RDS&quot;))
+}
+
+# calculate the significant DMPs' number
 discovery &lt;- as.data.frame(lapply(pvalues, function(x)(apply(x, 2, function(x)sum(x &lt; 0.05)))))
 discovery &lt;- as.data.frame(t(discovery))
 
@@ -181,7 +187,6 @@ cell_lable &lt;- matrix(cell_lable, nrow = nrow(plot_data), ncol = ncol(plot_dat
 
 col_fun = colorRamp2(c(-200, 0, 400), c(&quot;royalblue&quot;, &quot;white&quot;, &quot;red&quot;), space = &quot;RGB&quot;)
 panel_A &lt;- Heatmap(plot_data,
-#        name = &quot;Color Key&quot;,
         col = col_fun,
         rect_gp = gpar(col = &quot;grey&quot;, lwd = 0.25),
         cell_fun = function(j, i, x, y, width, height, fill){
@@ -218,27 +223,9 @@ sig_probes &lt;- lapply(pvalues, function(x)apply(x, 2, function(x)raw_probes[x 
 selected_method &lt;- &quot;IHW&quot;
 upset_list &lt;- sig_probes[[selected_method]]
 
-# convert list to data frame
-selected &lt;- unique(unlist(upset_list))
-upset_df &lt;- as.data.frame(matrix(nrow = length(selected), ncol = length(upset_list),
-                                 dimnames = list(selected, names(upset_list))))
-for(i in 1:nrow(upset_df)){
-  for(j in 1:ncol(upset_df)){
-    if(rownames(upset_df)[i] %in% upset_list[[colnames(upset_df)[j]]]){
-      upset_df[i, j] &lt;- 1
-    }else{
-      upset_df[i, j] &lt;- 0
-    }
-  }
-}
-
-# add annotations for EWAS28 significant probes by method BH
-EWAS28_sigprobes &lt;- readRDS(&quot;Data/EWAS28_sigprobes.RDS&quot;)
-upset_df$EWAS28 &lt;- ifelse(rownames(upset_df) %in% EWAS28_sigprobes, &quot;yes&quot;, &quot;no&quot;)
-
 # upset
 selected_measure &lt;- c(selected_measure, &quot;pvalue&quot;, &quot;ST&quot;)
-panel_B &lt;- upset(upset_df,
+panel_B &lt;- upset(fromList(upset_list),
       sets = selected_measure, 
       order.by = &quot;freq&quot;,
       point.size = 1.5,
@@ -258,8 +245,8 @@ gst &lt;- gometh(sig.cpg=sigCpGs, all.cpg=raw_probes, collection = &quot;GO&quot
 # Top 5 GO categories
 top10_GO &lt;- topGO(gst, number=10)
 datatable(top10_GO, rownames = TRUE, filter= &quot;none&quot;, options = list(pageLength = 5, scrollX=T))</code></pre>
-<div id="htmlwidget-1f7b7b87592bf2f85a05" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-1f7b7b87592bf2f85a05">{"x":{"filter":"none","data":[["GO:0045071","GO:1903901","GO:0071357","GO:0060337","GO:0034340","GO:0045069","GO:0048525","GO:0019079","GO:1903900","GO:0043901"],["negative regulation of viral genome replication","negative regulation of viral life cycle","cellular response to type I interferon","type I interferon signaling pathway","response to type I interferon","regulation of viral genome replication","negative regulation of viral process","viral genome replication","regulation of viral life cycle","negative regulation of multi-organism process"],["BP","BP","BP","BP","BP","BP","BP","BP","BP","BP"],[50,72,77,77,82,85,86,110,133,158],[9,9,11,11,11,10,10,10,10,10],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Term<\/th>\n      <th>Ont<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[3,4,5,6]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-d08b4558a24c8f30b095" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-d08b4558a24c8f30b095">{"x":{"filter":"none","data":[["GO:0045071","GO:1903901","GO:0071357","GO:0060337","GO:0034340","GO:0045069","GO:0048525","GO:0019079","GO:1903900","GO:0043901"],["negative regulation of viral genome replication","negative regulation of viral life cycle","cellular response to type I interferon","type I interferon signaling pathway","response to type I interferon","regulation of viral genome replication","negative regulation of viral process","viral genome replication","regulation of viral life cycle","negative regulation of multi-organism process"],["BP","BP","BP","BP","BP","BP","BP","BP","BP","BP"],[50,72,77,77,82,85,86,110,133,158],[9,9,11,11,11,10,10,10,10,10],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Term<\/th>\n      <th>Ont<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[3,4,5,6]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
 <pre class="r"><code>top10_GO$ratio &lt;- top10_GO$DE / top10_GO$N
 # plot top 10 terms
 top10_GO$Term &lt;- factor(top10_GO$Term, levels = as.character(top10_GO$Term[10:1]))
@@ -276,8 +263,8 @@ panel_C</code></pre>
 <pre class="r"><code># Top 10 KEGG categories
 kegg &lt;- gometh(sig.cpg = sigCpGs, all.cpg = raw_probes, collection = &quot;KEGG&quot;, prior.prob=TRUE)
 datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter=&quot;none&quot;, options = list(pageLength = 5, scrollX=T))</code></pre>
-<div id="htmlwidget-2c78e7d9cda038eec1a1" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-2c78e7d9cda038eec1a1">{"x":{"filter":"none","data":[["path:hsa05160","path:hsa05164","path:hsa05162","path:hsa04659","path:hsa05168","path:hsa04217","path:hsa04371","path:hsa04218","path:hsa05167","path:hsa05165"],["Hepatitis C","Influenza A","Measles","Th17 cell differentiation","Herpes simplex virus 1 infection","Necroptosis","Apelin signaling pathway","Cellular senescence","Kaposi sarcoma-associated herpesvirus infection","Human papillomavirus infection"],[140,145,120,102,446,141,135,153,173,312],[6,5,4,3,5,3,3,3,3,4],[2.58389241432384e-06,4.36299174920228e-05,0.000328139740140844,0.00330386322434723,0.00472015293022287,0.00611529136629833,0.00759461100877955,0.0105621671152848,0.0128305840768316,0.0160513246711546],[0.000865603958798485,0.00730801117991382,0.0366422709823943,0.27669854503908,0.316250246324932,0.34143710128499,0.363456383991593,0.442290747952553,0.477582851748732,0.520132493059634]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Pathway<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[2,3,4,5]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-de16da7912685c880a09" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-de16da7912685c880a09">{"x":{"filter":"none","data":[["path:hsa05160","path:hsa05164","path:hsa05162","path:hsa04659","path:hsa05168","path:hsa04217","path:hsa04371","path:hsa04218","path:hsa05167","path:hsa05165"],["Hepatitis C","Influenza A","Measles","Th17 cell differentiation","Herpes simplex virus 1 infection","Necroptosis","Apelin signaling pathway","Cellular senescence","Kaposi sarcoma-associated herpesvirus infection","Human papillomavirus infection"],[140,145,120,102,446,141,135,153,173,312],[6,5,4,3,5,3,3,3,3,4],[2.58389241432384e-06,4.36299174920228e-05,0.000328139740140844,0.00330386322434723,0.00472015293022287,0.00611529136629833,0.00759461100877955,0.0105621671152848,0.0128305840768316,0.0160513246711546],[0.000865603958798485,0.00730801117991382,0.0366422709823943,0.27669854503908,0.316250246324932,0.34143710128499,0.363456383991593,0.442290747952553,0.477582851748732,0.520132493059634]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Pathway<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[2,3,4,5]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
 <pre class="r"><code># organize figures
 top_row &lt;- plot_grid(panel_A, panel_C, rel_widths = c(1, 1), 
                      labels = c(&quot;A&quot;, &quot;C&quot;), label_size = 18)
@@ -292,13 +279,13 @@ f6 &lt;- plot_grid(top_row, panel_B, ncol = 1, labels = c(&quot;&quot;, &quot;B&
 # Top 20 GO categories
 gst &lt;- gometh(sig.cpg=reference, all.cpg=raw_probes, collection = &quot;GO&quot;, prior.prob = TRUE, array.type = &quot;450K&quot;, plot.bias = FALSE)
 datatable(topGO(gst, number=20), rownames = TRUE, filter=&quot;none&quot;, options = list(pageLength = 5, scrollX=T))</code></pre>
-<div id="htmlwidget-45203861d7a5d59e3ffd" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-45203861d7a5d59e3ffd">{"x":{"filter":"none","data":[["GO:0051607","GO:0009615","GO:0043900","GO:0098542","GO:0045087","GO:0002252","GO:0006955","GO:0051707","GO:0043207","GO:0009607","GO:0071357","GO:0060337","GO:0034340","GO:0045069","GO:0048525","GO:0050792","GO:0043903","GO:0009605","GO:0006952","GO:0019079"],["defense response to virus","response to virus","regulation of multi-organism process","defense response to other organism","innate immune response","immune effector process","immune response","response to other organism","response to external biotic stimulus","response to biotic stimulus","cellular response to type I interferon","type I interferon signaling pathway","response to type I interferon","regulation of viral genome replication","negative regulation of viral process","regulation of viral process","regulation of symbiosis, encompassing mutualism through parasitism","response to external stimulus","defense response","viral genome replication"],["BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP"],[208,289,355,431,764,1078,1813,841,842,871,77,77,82,85,86,170,196,2161,1428,110],[11,11,10,11,11,12,14,11,11,11,6,6,6,6,6,7,7,14,12,6],[0,0,0,0,0,0,0,2.52789189199727e-11,2.55254826940931e-11,3.88299314784355e-11,8.31633999662031e-11,8.31633999662031e-11,1.32236785324766e-10,1.45503004794073e-10,1.55141496252712e-10,1.85232355180033e-10,5.22068009013201e-10,5.44744558554686e-10,6.12428358392596e-10,7.93441938832635e-10],[0,0,0,0,0,0,0,6.41171763628181e-08,6.41171763628181e-08,8.7782826093299e-08,1.56672915252996e-07,1.56672915252996e-07,2.29959769679768e-07,2.33818920385671e-07,2.33818920385671e-07,2.61721740847188e-07,6.841689019581e-07,6.841689019581e-07,7.28693047272706e-07,8.96867095559469e-07]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Term<\/th>\n      <th>Ont<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[3,4,5,6]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-9177bda54aeacee933d2" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-9177bda54aeacee933d2">{"x":{"filter":"none","data":[["GO:0051607","GO:0009615","GO:0043900","GO:0098542","GO:0045087","GO:0002252","GO:0006955","GO:0051707","GO:0043207","GO:0009607","GO:0071357","GO:0060337","GO:0034340","GO:0045069","GO:0048525","GO:0050792","GO:0043903","GO:0009605","GO:0006952","GO:0019079"],["defense response to virus","response to virus","regulation of multi-organism process","defense response to other organism","innate immune response","immune effector process","immune response","response to other organism","response to external biotic stimulus","response to biotic stimulus","cellular response to type I interferon","type I interferon signaling pathway","response to type I interferon","regulation of viral genome replication","negative regulation of viral process","regulation of viral process","regulation of symbiosis, encompassing mutualism through parasitism","response to external stimulus","defense response","viral genome replication"],["BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP","BP"],[208,289,355,431,764,1078,1813,841,842,871,77,77,82,85,86,170,196,2161,1428,110],[11,11,10,11,11,12,14,11,11,11,6,6,6,6,6,7,7,14,12,6],[0,0,0,0,0,0,0,2.52789189199727e-11,2.55254826940931e-11,3.88299314784355e-11,8.31633999662031e-11,8.31633999662031e-11,1.32236785324766e-10,1.45503004794073e-10,1.55141496252712e-10,1.85232355180033e-10,5.22068009013201e-10,5.44744558554686e-10,6.12428358392596e-10,7.93441938832635e-10],[0,0,0,0,0,0,0,6.41171763628181e-08,6.41171763628181e-08,8.7782826093299e-08,1.56672915252996e-07,1.56672915252996e-07,2.29959769679768e-07,2.33818920385671e-07,2.33818920385671e-07,2.61721740847188e-07,6.841689019581e-07,6.841689019581e-07,7.28693047272706e-07,8.96867095559469e-07]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Term<\/th>\n      <th>Ont<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[3,4,5,6]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
 <pre class="r"><code># Top 10 KEGG categories
 kegg &lt;- gometh(sig.cpg = reference, all.cpg = raw_probes, collection = &quot;KEGG&quot;, prior.prob=TRUE)
 datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter=&quot;none&quot;, options = list(pageLength = 5, scrollX=T))</code></pre>
-<div id="htmlwidget-6720f9277862020be8b4" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-6720f9277862020be8b4">{"x":{"filter":"none","data":[["path:hsa05160","path:hsa05162","path:hsa05164","path:hsa04625","path:hsa05165","path:hsa04217","path:hsa05167","path:hsa05169","path:hsa04010","path:hsa04330"],["Hepatitis C","Measles","Influenza A","C-type lectin receptor signaling pathway","Human papillomavirus infection","Necroptosis","Kaposi sarcoma-associated herpesvirus infection","Epstein-Barr virus infection","MAPK signaling pathway","Notch signaling pathway"],[140,120,145,102,312,141,173,184,283,52],[4,3,3,2,3,2,2,2,2,1],[1.21834689560076e-05,0.000245516959915365,0.000433684578546671,0.00499908388968375,0.00518835271304733,0.00872190711237098,0.014111246007753,0.0174113524714095,0.0405502590388116,0.05756248000701],[0.00408146210026253,0.0411240907858237,0.0484281112710449,0.347619631774171,0.347619631774171,0.48697314710738,0.675323916085322,0.729100384740273,1,1]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Pathway<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[2,3,4,5]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-c1a79ee1febb4e4caec6" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-c1a79ee1febb4e4caec6">{"x":{"filter":"none","data":[["path:hsa05160","path:hsa05162","path:hsa05164","path:hsa04625","path:hsa05165","path:hsa04217","path:hsa05167","path:hsa05169","path:hsa04010","path:hsa04330"],["Hepatitis C","Measles","Influenza A","C-type lectin receptor signaling pathway","Human papillomavirus infection","Necroptosis","Kaposi sarcoma-associated herpesvirus infection","Epstein-Barr virus infection","MAPK signaling pathway","Notch signaling pathway"],[140,120,145,102,312,141,173,184,283,52],[4,3,3,2,3,2,2,2,2,1],[1.21834689560076e-05,0.000245516959915365,0.000433684578546671,0.00499908388968375,0.00518835271304733,0.00872190711237098,0.014111246007753,0.0174113524714095,0.0405502590388116,0.05756248000701],[0.00408146210026253,0.0411240907858237,0.0484281112710449,0.347619631774171,0.347619631774171,0.48697314710738,0.675323916085322,0.729100384740273,1,1]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Pathway<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[2,3,4,5]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
 </div>
 <div id="CAMT" class="section level3">
 <h3>4. Validate the IHW results by method CAMT</h3>
@@ -346,8 +333,8 @@ gst &lt;- gometh(sig.cpg=sigCpGs, all.cpg=raw_probes, collection = &quot;GO&quot
 # Top 10 GO categories
 top10_GO &lt;- topGO(gst, number=10)
 datatable(top10_GO, rownames = TRUE, filter=&quot;none&quot;, options = list(pageLength = 5, scrollX=T))</code></pre>
-<div id="htmlwidget-1285e3bed5b6742c7763" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-1285e3bed5b6742c7763">{"x":{"filter":"none","data":[["GO:0035456","GO:0045071","GO:1903901","GO:0045069","GO:0019079","GO:1903900","GO:0051607","GO:0071357","GO:0060337","GO:0034340"],["response to interferon-beta","negative regulation of viral genome replication","negative regulation of viral life cycle","regulation of viral genome replication","viral genome replication","regulation of viral life cycle","defense response to virus","cellular response to type I interferon","type I interferon signaling pathway","response to type I interferon"],["BP","BP","BP","BP","BP","BP","BP","BP","BP","BP"],[26,50,72,85,110,133,208,77,77,82],[7,11,11,12,12,12,22,16,16,16],[0,0,0,0,0,0,3.34038554664251e-26,8.37157160753823e-24,8.37157160753823e-24,2.50490061449459e-23],[0,0,0,0,0,0,1.07880137218496e-22,2.1028457703513e-20,2.1028457703513e-20,5.66282881918792e-20]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Term<\/th>\n      <th>Ont<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[3,4,5,6]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-b594f5dc8d74a9291620" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-b594f5dc8d74a9291620">{"x":{"filter":"none","data":[["GO:0035456","GO:0045071","GO:1903901","GO:0045069","GO:0019079","GO:1903900","GO:0051607","GO:0071357","GO:0060337","GO:0034340"],["response to interferon-beta","negative regulation of viral genome replication","negative regulation of viral life cycle","regulation of viral genome replication","viral genome replication","regulation of viral life cycle","defense response to virus","cellular response to type I interferon","type I interferon signaling pathway","response to type I interferon"],["BP","BP","BP","BP","BP","BP","BP","BP","BP","BP"],[26,50,72,85,110,133,208,77,77,82],[7,11,11,12,12,12,22,16,16,16],[0,0,0,0,0,0,3.34038554664251e-26,8.37157160753823e-24,8.37157160753823e-24,2.50490061449459e-23],[0,0,0,0,0,0,1.07880137218496e-22,2.1028457703513e-20,2.1028457703513e-20,5.66282881918792e-20]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Term<\/th>\n      <th>Ont<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[3,4,5,6]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
 <pre class="r"><code>top10_GO$ratio &lt;- top10_GO$DE / top10_GO$N
 top10_GO$Term &lt;- factor(top10_GO$Term, levels = as.character(top10_GO$Term[10:1]))
 
@@ -366,8 +353,8 @@ fs16_2</code></pre>
 <pre class="r"><code># Top 10 KEGG categories
 kegg &lt;- gometh(sig.cpg = sigCpGs, all.cpg = raw_probes, collection = &quot;KEGG&quot;, prior.prob=TRUE)
 datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter=&quot;none&quot;, options = list(pageLength = 5, scrollX=T))</code></pre>
-<div id="htmlwidget-792f07c407020b74d0dc" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-792f07c407020b74d0dc">{"x":{"filter":"none","data":[["path:hsa05160","path:hsa05164","path:hsa05162","path:hsa05169","path:hsa05168","path:hsa04621","path:hsa05167","path:hsa04659","path:hsa03050","path:hsa05145"],["Hepatitis C","Influenza A","Measles","Epstein-Barr virus infection","Herpes simplex virus 1 infection","NOD-like receptor signaling pathway","Kaposi sarcoma-associated herpesvirus infection","Th17 cell differentiation","Proteasome","Toxoplasmosis"],[140,145,120,184,446,160,173,102,45,106],[8,7,6,6,8,4,4,3,2,3],[1.7072183756886e-07,2.23204608316564e-06,1.19179249601957e-05,0.000208452020444608,0.000248259066072658,0.00325206638974174,0.00698965574295623,0.0113811892068127,0.0127072912603659,0.0130231863400786],[5.71918155855679e-05,0.000373867718930245,0.00133083495388852,0.0166333574268681,0.0166333574268681,0.181573706760581,0.334504953412905,0.436276742392632,0.436276742392632,0.436276742392632]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Pathway<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[2,3,4,5]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-d292e023e275540b3db7" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-d292e023e275540b3db7">{"x":{"filter":"none","data":[["path:hsa05160","path:hsa05164","path:hsa05162","path:hsa05169","path:hsa05168","path:hsa04621","path:hsa05167","path:hsa04659","path:hsa03050","path:hsa05145"],["Hepatitis C","Influenza A","Measles","Epstein-Barr virus infection","Herpes simplex virus 1 infection","NOD-like receptor signaling pathway","Kaposi sarcoma-associated herpesvirus infection","Th17 cell differentiation","Proteasome","Toxoplasmosis"],[140,145,120,184,446,160,173,102,45,106],[8,7,6,6,8,4,4,3,2,3],[1.7072183756886e-07,2.23204608316564e-06,1.19179249601957e-05,0.000208452020444608,0.000248259066072658,0.00325206638974174,0.00698965574295623,0.0113811892068127,0.0127072912603659,0.0130231863400786],[5.71918155855679e-05,0.000373867718930245,0.00133083495388852,0.0166333574268681,0.0166333574268681,0.181573706760581,0.334504953412905,0.436276742392632,0.436276742392632,0.436276742392632]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Pathway<\/th>\n      <th>N<\/th>\n      <th>DE<\/th>\n      <th>P.DE<\/th>\n      <th>FDR<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":5,"scrollX":true,"columnDefs":[{"className":"dt-right","targets":[2,3,4,5]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"lengthMenu":[5,10,25,50,100]}},"evals":[],"jsHooks":[]}</script>
 <pre class="r"><code># organize figures
 fs16 &lt;- plot_grid(fs16_1, fs16_2, ncol = 1, labels = c(&quot;A&quot;, &quot;B&quot;), label_size = 18,
                   rel_heights = c(2, 1))</code></pre>
