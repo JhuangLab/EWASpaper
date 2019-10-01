@@ -67,7 +67,7 @@ cdata <- plyr::ddply(IHW_power, c("measure", "sample_size"), summarise,
                sd   = sd(Power, na.rm = TRUE),
                se   = sd / sqrt(N))
 
-f4 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
+fs11 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), 
                width = 0.8, 
                position = position_dodge(width = 0.5),
@@ -81,13 +81,13 @@ f4 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measu
         legend.text = element_text(size = 6),
         legend.title = element_text(size = 8))
 
-f4
+fs11
 ```
 <br>
 <br>
 
 ```{r, include=FALSE}
-ggsave("Figures/Figure4.pdf", f4, width = 7, height = 4, useDingbats = FALSE)
+ggsave("Figures/FigureS11.pdf", fs11, width = 7, height = 4, useDingbats = FALSE)
 ```
 
 #### 1.2 Method CAMT
@@ -102,7 +102,7 @@ cdata <- plyr::ddply(CAMT_power, c("measure", "sample_size"), summarise,
                sd   = sd(Power, na.rm = TRUE),
                se   = sd / sqrt(N))
 
-fs11 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
+f4 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width = 0.8, 
                position = position_dodge(width = 0.5),
                lwd = 0.5) +
@@ -115,11 +115,11 @@ fs11 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = mea
         legend.text = element_text(size = 6),
         legend.title = element_text(size = 8))
 
-fs11
+f4
 ```
 
 ```{r, include=FALSE}
-ggsave("Figures/FigureS11.pdf", fs11, width = 7, height = 4, useDingbats = FALSE)
+ggsave("Figures/Figure4.pdf", f4, width = 7, height = 4, useDingbats = FALSE)
 ```
 
 

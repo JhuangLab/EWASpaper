@@ -47,7 +47,7 @@ measure_col <- c("BH"="#1B9E77", "ST"="#D95F02", "sd.b"="#7570B3", "sd.m"="#E729
 
 ### 1. Run time for each method on real EWAS data {#runtime}
 ***
-```{r run time}
+```{r run time, fig.height=4, fig.width=6}
 runtime <- readRDS("Data/runtime.RDs")
 runtime <- mutate(runtime, log_runtime = log10(Run_Time)) %>%
   group_by(measure, method) %>%
@@ -88,7 +88,7 @@ save_plot("Figures/FigureS6.pdf", fs6)
 ### 2. Signal numbers: ST vs BH {#STvsBH}
 *** 
 For each data set, the number of ST detected significant differential CpGs is always no less than that of BH. So the result of ST is used as reference in the comparison with other covariate-adaptive FDR control methods.
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, fig.height=4, fig.width=6}
 reference_discovery <- read.csv("Data/reference_discovery.csv", header = TRUE)
 fs7 <- reference_discovery %>%
   ggplot(aes(x = BH + 1, y = ST + 1)) +
@@ -182,7 +182,7 @@ dev.off()
 ```
 
 #### 2.2 Boxplot of logFC corresponding to the heatmap
-```{r}
+```{r, fig.height=4, fig.width=6}
 # Method AdaPT's performance is very different from other methods, so an alternative range is set for it.
 
 p1 <- plot_data %>%
@@ -222,7 +222,7 @@ fs8_1
 <br>
 
 #### 2.3 Boxplot of logFC for each Method with the best informative covariate
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, fig.height=4, fig.width=6}
 fs8_2 <- left_join(discovery_number, reference_discovery, by = "dataset") %>%
   mutate(logFC = log2((discovery + 1)/(ST + 1))) %>%
   group_by(dataset, method) %>%
@@ -245,7 +245,6 @@ fs8_2
 <br>
 ```{r}
 fs8 <- plot_grid(fs8_1, fs8_2, labels = c("A", "B"), ncol = 1, label_size = 18)
-fs8
 ```
 
 ```{r, include=FALSE}
