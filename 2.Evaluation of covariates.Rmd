@@ -144,7 +144,7 @@ save_plot("Figures/FigureS3.pdf", fs3, base_width = 6.69, base_height = 8)
 ***
 We performed simulations to assess the type I error and power of the proposed omnibus test and benchmarked against the naïve tests.
 <br>
-![](Figures/Figure1.png)
+![](Figures/Figure1A.png)
 <br>
 
 ### 3.Omnibus test to assess the informativeness of EWAS-related covariates {#real}
@@ -169,7 +169,7 @@ p
 ```
 
 ```{r, include=FALSE}
-f1 <- ggdraw() + draw_image("Figures/Figure2.png", width = 4, height = 4)
+f1 <- ggdraw() + draw_image("Figures/Figure1A.png", width = 4, height = 4)
 f1 <- plot_grid(f1, p, nrow = 1)
 ggsave(filename = "Figures/Figure1.pdf", f1, useDingbats = FALSE)
 ```

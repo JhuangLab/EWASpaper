@@ -20,7 +20,7 @@ setwd("/Users/apple/Documents/GitHub/EWAS/")
 - [2. Signal numbers: ST vs BH](#STvsBH)
 - [3. Overview of changes across methods and covariates](#overview)  
 - [4. An example demonstrated the strong informativeness of covariate mean](#example)
-- [5. The relationship between omibus p-value and signal changes](#relationship)
+- [5. Informative covariates enhance detection power](#informative)
 <br>
 <br>
 <br>
@@ -107,9 +107,9 @@ fs7
 save_plot("Figures/FigureS7.pdf", fs7)
 ```
 
-### 2. Overview of changes across methods and covariates{#overview}
+### 3. Overview of changes across methods and covariates{#overview}
 ***
-#### 2.1 Heatmap: Performance evaluation by signal changes
+#### 3.1 Heatmap: Performance evaluation by signal changes
 ```{r heatmp, message=FALSE, fig.height=6, fig.width=7.5}
 discovery_number <- read.csv("Data/discovery_number.csv", header = TRUE)
 covariate_order <- c("mean", "sd.b", "mad", "precision", "sd.m", "icc.m", "cpg.loc",
@@ -181,7 +181,8 @@ draw(f3)
 dev.off()
 ```
 
-#### 2.2 Boxplot of logFC corresponding to the heatmap
+
+#### 3.2 Boxplot of logFC corresponding to the heatmap
 ```{r, fig.height=4, fig.width=6}
 # Method AdaPT's performance is very different from other methods, so an alternative range is set for it.
 
@@ -216,21 +217,31 @@ p2 <- plot_data %>%
         legend.justification = "center")
 
 fs8_1 <- plot_grid(p1, p2, rel_widths = c(1, 4))
-fs8_1
 ```
 <br>
 <br>
 
-#### 2.3 Boxplot of logFC for each Method with the best informative covariate
+#### 3.3 Boxplot of logFC for each Method with the best informative covariate
 ```{r, message=FALSE, warning=FALSE, fig.height=4, fig.width=6}
+# select the most informative covariate (with min omnibus test p-value)
+omnibus_result <- read.csv("Data/omnibus.result.csv", header = TRUE)
+
+# select the most significant covariate for each dataset
+selected <- omnibus_result %>%
+  group_by(dataset) %>%
+  arrange(factor(dataset), p.value, desc(stat.o)) %>%
+  filter(rank(p.value, ties.method = "first") == 1, p.value < 0.05) %>%
+  select(dataset, measure) %>%
+  mutate(id = paste0(dataset, "_", measure))
+
 fs8_2 <- left_join(discovery_number, reference_discovery, by = "dataset") %>%
   mutate(logFC = log2((discovery + 1)/(ST + 1))) %>%
-  group_by(dataset, method) %>%
-  summarize(logFCmax = max(logFC)) %>%
-  ggplot(aes(x = method, y = logFCmax, color = method)) +
+  mutate(id = paste0(dataset, "_", measure)) %>%
+  filter(id %in% selected$id) %>%
+  ggplot(aes(x = method, y = logFC, color = method)) +
   geom_boxplot(outlier.shape = NA, fatten = 1, lwd = 0.3) +
   geom_sina(size = 1, alpha = 0.5, shape = 16) +
-  coord_cartesian(ylim = c(-2, 3)) +
+  coord_cartesian(ylim = c(-3.75, 2.5)) +
   scale_color_manual(values = method_col) +
   theme_bw() +
   theme(legend.position = "none", 
@@ -238,13 +249,12 @@ fs8_2 <- left_join(discovery_number, reference_discovery, by = "dataset") %>%
         axis.text.y = element_text(size = 8),
         title = element_text(size = 10)) +
   xlab("") + ylab("logFC")
-
-fs8_2
 ```
 <br>
 <br>
 ```{r}
 fs8 <- plot_grid(fs8_1, fs8_2, labels = c("A", "B"), ncol = 1, label_size = 18)
+fs8
 ```
 
 ```{r, include=FALSE}
@@ -279,11 +289,65 @@ fs9
 save_plot("Figures/FigureS9.pdf", plot = fs9, base_width = 7, base_height = 2.5)
 ```
 
-### 5. Signal number changes vs omnibus test p-value {#relationship}
+### 5. Informative covariates enhance detection power {#informative}
+***
+#### 5.1 Heatmap only with the most informative covariates
+```{r}
+plotdata_subset <- discovery_number %>%
+  mutate(id = paste0(dataset, "_", measure)) %>%
+  filter(id %in% selected$id, measure != "icc.b", measure != "icc.m") %>%
+  left_join(reference_discovery, by = "dataset") %>%
+  filter(ST > 0) %>%
+  arrange(pi0) %>%
+  mutate(logFC = log2((discovery + 1)/(ST + 1)))
+
+heatmapdata_subset <- dcast(plotdata_subset, dataset ~ method, value.var = "logFC")
+rownames(heatmapdata_subset) <- heatmapdata_subset$dataset
+heatmapdata_subset$dataset <- NULL
+rownames(reference_discovery) <- reference_discovery$dataset
+heatmapdata_subset$ST <- reference_discovery[rownames(heatmapdata_subset), "ST"]
+heatmapdata_subset$pi0 <- reference_discovery[rownames(heatmapdata_subset), "pi0"]
+heatmapdata_subset <- heatmapdata_subset[order(heatmapdata_subset$pi0), ]
+fs10 <- Heatmap(as.matrix(heatmapdata_subset[, 1:5]),
+             name = "logFC",
+             rect_gp = gpar(col = "grey", lwd = 0.05),
+             col = col_fun,
+             cluster_rows = FALSE,
+             left_annotation = rowAnnotation(
+               ST = heatmapdata_subset$ST,
+               pi0 = heatmapdata_subset$pi0,
+               col = list(ST = ST_color,
+                          pi0 = pi0_color),
+               simple_anno_size = unit(0.1, "inch"),
+               annotation_name_gp = gpar(fontsize = 6),
+               annotation_legend_param = list(title_gp = gpar(fontsize = 6),
+                                              labels_gp = gpar(fontsize = 5),
+                                              grid_height = unit(0.1, "inch"),
+                                              grid_width = unit(0.1, "inch"))),
+             row_names_gp = gpar(fontsize = 4), 
+             column_names_gp = gpar(fontsize = 6),
+             column_names_rot = 45,
+             column_names_centered = TRUE,
+             show_row_dend = FALSE,
+             column_dend_height = unit(0.2, "inch"),
+             width = unit(1, "inch"),
+             height = unit(4, "inch"),
+             heatmap_legend_param = list(title_gp = gpar(fontsize = 6),
+                                         labels_gp = gpar(fontsize = 5),
+                                         grid_height = unit(0.1, "inch"),
+                                         grid_width = unit(0.1, "inch")))
+fs10
+```
+
+```{r, include=FALSE}
+pdf("Figures/FigureS10.pdf", width = 2.5, height = 5)
+draw(fs10)
+dev.off()
+```
+
+### 5.2 Signal number changes vs omnibus test p-value
 Three groups ("p<=0.001", "0.001<p<=0.01", "p>0.01") are classified according to omnibus test p-value. We explored the signal number changes accross the three groups.
 ```{r, fig.width=6.69, fig.height=3.5, message=FALSE, warning=FALSE}
-omnibus_result <- read.csv("Data/omnibus.result.csv", header = TRUE)
-
 # Method AdaPT's performance is very different from other methods, so an alternative range is set for it.
 
 p1 <- left_join(plot_data, omnibus_result) %>%
@@ -319,11 +383,122 @@ p2 <- left_join(plot_data, omnibus_result) %>%
         axis.ticks.x = element_blank(),
         legend.position = "right")
 
-fs10 <- plot_grid(p1, p2, rel_widths = c(1, 4.5))
-fs10
+fs11 <- plot_grid(p1, p2, rel_widths = c(1, 4.5))
+fs11
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS10.pdf", fs10, base_width = 8)
+save_plot("Figures/FigureS11.pdf", fs11, base_width = 8)
 ```
+
+### 5.3 Two strategies improve detection power: the most informative covariate and combination of multiple informative covariates
+```{r, warning=FALSE, message=FALSE, fig.width=4.5, fig.height=6}
+CAMT_combined <- read.csv("Data/CAMT_combined.csv", header = TRUE)
+CAMT_combined$fromST <- NULL
+
+long_data <- melt(CAMT_combined, id.vars = "X", value.name = "discovery", variable.name = "measure")
+
+selected <- omnibus_result %>%
+  group_by(dataset) %>%
+  arrange(factor(dataset), p.value, desc(stat.o)) %>%
+  filter(rank(p.value, ties.method = "first") == 1, p.value < 0.05) %>%
+  select(dataset, measure) %>%
+  left_join(long_data, by = c("dataset" = "X", "measure" = "measure")) %>%
+  select(dataset, measure, discovery) %>%
+  ungroup()
+selected$measure <- "most.sig"
+
+colnames(long_data) <- colnames(selected)
+long_data <- rbind(long_data, selected)
+
+long_data$discovery <- as.numeric(long_data$discovery)
+long_data <- long_data %>%
+  left_join(reference_discovery) %>%
+  mutate(logFC = log2((1+discovery)/(1+ST)),
+         id = paste0(dataset, "_", measure)) 
+
+wide_data <- dcast(long_data, dataset ~ measure, value.var = "logFC")
+rownames(wide_data) <- wide_data$dataset
+wide_data$dataset <- NULL
+wide_data$icc.b <- NULL
+wide_data$icc.m <- NULL
+covariate_order <- c("mean", "sd.b", "mad", "precision", "sd.m", "cpg.loc",
+                     "direction", "refgene.pos", "probe.type", "dip", "dhs", "chr",
+                     "most.sig", "multiple")
+wide_data <- wide_data[, covariate_order]
+
+# heatmap top annotation
+top_anno <- long_data %>%
+  group_by(measure) %>%
+  dcast(dataset ~ measure, value.var = "logFC")
+rownames(top_anno) <- top_anno$dataset
+top_anno <- top_anno[rownames(wide_data), colnames(wide_data)]
+
+# row annotation
+rownames(reference_discovery) <- reference_discovery$dataset
+wide_data$ST <- reference_discovery[rownames(wide_data), "ST"]
+wide_data$pi0 <- reference_discovery[rownames(wide_data), "pi0"]
+wide_data <- wide_data[order(wide_data$pi0), ]
+
+# heatmap body annotation
+annotation_df <- dcast(omnibus_result, dataset ~ measure, value.var = "p.value")
+rownames(annotation_df) <- annotation_df$dataset
+annotation_df$dataset <- NULL
+annotation_df <- annotation_df[rownames(wide_data), colnames(wide_data)[1:12]]
+annotation_df$most.sig <- 1
+annotation_df$multiple <- 1
+annotation_matrix <- as.matrix(annotation_df)
+
+col_fun <- colorRamp2(c(-4, -2, 0, 2, 4), c("royalblue", "blue", "white", "red", "red3"), 
+                      space = "RGB")
+measrue_color <- c("most.sig"="#FB9A99", "multiple"="#E31A1C", "sd.b"="#7570B3", "sd.m"="#E7298A",
+                   "mean"="#A6CEE3", "mad"="#1F78B4", "dip"="#B2DF8A", "precision"="#FFFF00",
+                   "refgene.pos"="#FDBF6F", "chr"="#A6761D", "cpg.loc"="#CAB2D6", "dhs"="#949494",
+                   "direction"="#7FFFD4", "probe.type" ="#FFE4E1")
+fs12 <- Heatmap(as.matrix(wide_data[, 1:14]),
+        col = col_fun,
+        border = "grey",
+        na_col = "lightgrey",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        name = "logFC",
+        row_names_gp = gpar(fontsize = 4), 
+        column_names_gp = gpar(fontsize = 7),
+        width = unit(2, "inch"),
+        height = unit(4, "inch"),
+        heatmap_legend_param = list(title_gp = gpar(fontsize = 6),
+                                    labels_gp = gpar(fontsize = 5),
+                                    grid_height = unit(0.1, "inch"),
+                                    grid_width = unit(0.13, "inch")),
+        cell_fun = function(j, i, x, y, width, height, fill) {
+          if(!is.na(annotation_matrix[i, j])){
+            if(annotation_matrix[i, j]  < 0.05)
+              grid.text("*", x, y, vjust = 0.8, gp = gpar(fontsize = 4))
+          }},
+        top_annotation = columnAnnotation(
+          logFC = anno_boxplot(top_anno, outline = FALSE,
+                               gp = gpar(fill = measrue_color[covariate_order])),
+          annotation_height = unit(0.7, "inch"),
+          annotation_name_gp = gpar(fontsize = 6)),
+        left_annotation = rowAnnotation(
+          ST = wide_data$ST,
+          pi0 = wide_data$pi0,
+          col = list(ST = ST_color,
+                     pi0 = pi0_color),
+          simple_anno_size = unit(0.1, "inch"),
+          annotation_name_gp = gpar(fontsize = 6),
+          annotation_legend_param = list(title_gp = gpar(fontsize = 6),
+                                         labels_gp = gpar(fontsize = 5),
+                                         grid_height = unit(0.1, "inch"),
+                                         grid_width = unit(0.13, "inch")))
+        )
+fs12
+```
+
+```{r, include=FALSE}
+pdf("Figures/FigureS12.pdf", width = 4.5, height = 6)
+draw(fs12)
+dev.off()
+```
+
 

@@ -49,7 +49,6 @@ method_col <- c("CAMT" = "#FF0000", "AdaPT" = "#E69F00", "IHW" = "#56B4E9",
 ***
 EWAS51 is a dataset with binary phenotype (FASD and control). We sampled each phenotype randomly at sample size 10, 20, 30, 40, 50, 60, 70, 80, 90 and 100 by method IHW and CAMT. The power of each method with different covariates are displyed as follows.  
 <br>
-<br>
 
 #### 1.1 Method IHW
 ```{r, fig.align='center'}
@@ -67,7 +66,7 @@ cdata <- plyr::ddply(IHW_power, c("measure", "sample_size"), summarise,
                sd   = sd(Power, na.rm = TRUE),
                se   = sd / sqrt(N))
 
-fs11 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
+fs13 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = measure)) +
  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), 
                width = 0.8, 
                position = position_dodge(width = 0.5),
@@ -81,13 +80,13 @@ fs11 <- ggplot(data = cdata, aes(x = factor(sample_size), y = mean, colour = mea
         legend.text = element_text(size = 6),
         legend.title = element_text(size = 8))
 
-fs11
+fs13
 ```
 <br>
 <br>
 
 ```{r, include=FALSE}
-ggsave("Figures/FigureS11.pdf", fs11, width = 7, height = 4, useDingbats = FALSE)
+ggsave("Figures/FigureS13.pdf", fs13, width = 7, height = 4, useDingbats = FALSE)
 ```
 
 #### 1.2 Method CAMT
@@ -209,7 +208,7 @@ panel_B <- ranks[[selected_method]][selected_cpg, ] %>%
 panel_B
 
 selected_method <- c("AdaPT", "BL", "CAMT", "FDRreg")
-fs12 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
+fs14 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
   melt(value.name = "Significance_rank") %>%
   mutate(method = sapply(str_split(variable, fixed("."), n = 2), function(x)unlist(x)[1]),
          measure = sapply(str_split(variable, fixed("."), n = 2), function(x)unlist(x)[2])) %>%
@@ -235,13 +234,13 @@ fs12 <- as.data.frame(ranks[selected_method])[selected_cpg, ] %>%
         axis.text.y = element_text(size = 8),
         axis.title.y = element_text(size = 10))
 
-fs12
+fs14
 ```
 <br>
 <br>
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS12.pdf", fs12, base_width = 6.69, base_height = 5)
+save_plot("Figures/FigureS14.pdf", fs14, base_width = 6.69, base_height = 5)
 ```
 
 #### 2.3 Boxplot of gold standard CpGs' significance orders by different methods
@@ -269,8 +268,8 @@ panel_C
 ```
 <br>
 <br>
-#### organize figures into Figure 5
 ```{r, fig.width=7, fig.height=8}
+# organize figures into Figure 5
 bottom_row <- plot_grid(panel_B, panel_C, nrow = 1, align = "h", 
                         labels = c("B", "C"), label_size = 18)
 f5 <- plot_grid(panel_A, bottom_row, ncol = 1,
@@ -282,7 +281,7 @@ f5
 save_plot("Figures/Figure5.pdf", plot = f5, base_width = 6, base_height = 6)
 ```
 
-#### 2.5 Validation in another data set EWAS27
+#### 2.4 Validation in another data set EWAS27
 ```{r, message=FALSE}
 selected_measure <- c("mad", "mean", "sd.b", "precision", "sd.m", "dhs", "dip", "chr",  "direction", "probe.type", "refgene.pos", "cpg.loc")
 
@@ -306,7 +305,7 @@ plot_data <- as.matrix((plot_data - ST)/ST)*100
 cell_lable <- paste0(round(plot_data, 0), "%")
 cell_lable <- matrix(cell_lable, nrow = nrow(plot_data), ncol = ncol(plot_data))
 col_fun = colorRamp2(c(-100, 0, 200), c("blue", "white", "red"), space = "RGB")
-fs13_1 <- Heatmap(plot_data,
+fs15_1 <- Heatmap(plot_data,
         name = "Color Key",
         col = col_fun,
         rect_gp = gpar(col = "grey", lwd = 0.25),
@@ -323,8 +322,7 @@ fs13_1 <- Heatmap(plot_data,
                                     title_gp = gpar(fontsize = 8),
                                     at = c(-100, 0, 100, 200),
                                     labels = c("-100%", 0, "100%", "200%")))
-draw(fs13_1)
-fs13_1 <- grid.grabExpr(draw(fs13_1))
+fs15_1 <- grid.grabExpr(draw(fs15_1))
 
 ## boxplot
 ranks <- lapply(pvalues, function(x)as.data.frame(apply(x, 2, function(x)rank(x, ties.method = "average"))))
@@ -336,7 +334,7 @@ selected_cpg <- gold_standard$x[gold_standard$x %in% rownames(ranks[[1]])]
 
 reference_line <- median(ranks[[selected_method]][selected_cpg, "ST"])
 
-fs13_2 <- ranks[[selected_method]][selected_cpg, ] %>%
+fs15_2 <- ranks[[selected_method]][selected_cpg, ] %>%
   select(selected_measure) %>%
   melt(value.name = "Significance_rank") %>%
   group_by(variable) %>%
@@ -357,13 +355,11 @@ fs13_2 <- ranks[[selected_method]][selected_cpg, ] %>%
         axis.title = element_text(size = 10),
         legend.position = "none")
 
-fs13_2
-
 subset_rank <- as.data.frame(lapply(ranks, function(x)x[, "mean", drop = FALSE]))
 colnames(subset_rank) <- names(ranks)
 
 selected_method <- c("CAMT", "AdaPT", "IHW", "BL", "FDRreg")
-fs13_3 <- subset_rank[selected_cpg, ] %>%
+fs15_3 <- subset_rank[selected_cpg, ] %>%
   select(selected_method) %>%
   melt(value.name = "Significance_rank") %>%
   ggplot(aes(x = variable, y = Significance_rank)) +
@@ -376,20 +372,17 @@ fs13_3 <- subset_rank[selected_cpg, ] %>%
         axis.title = element_text(size = 10),
         legend.position = "none") +
   geom_hline(yintercept = reference_line, linetype = "dashed", color = "black", size = 0.5)
-
-fs13_3
-
 ```
 
 ```{r, fig.width=7, fig.height=6}
 ## put all figures together
-bottom_row <- plot_grid(fs13_2, fs13_3, labels = c("B", "C"), align = "h", nrow = 1, label_size = 18)
-fs13 <- plot_grid(fs13_1, bottom_row, labels = c("A", ""), ncol = 1, label_size = 18)
-fs13
+bottom_row <- plot_grid(fs15_2, fs15_3, labels = c("B", "C"), align = "h", nrow = 1, label_size = 18)
+fs15 <- plot_grid(fs15_1, bottom_row, labels = c("A", ""), ncol = 1, label_size = 18)
+fs15
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS13.pdf", plot = fs13, base_width = 6, base_height = 6)
+save_plot("Figures/FigureS15.pdf", plot = fs15, base_width = 6, base_height = 6)
 ```
 
 
@@ -482,7 +475,7 @@ table(methy_data$group)
 <br>
 
 ```{r}
-fs14 <- methy_data %>%
+fs16 <- methy_data %>%
   ggplot(aes(x = group, y = bVals, fill = group)) + 
   stat_boxplot(geom = "errorbar", width = 0.3) + 
   geom_boxplot(width = 0.6) + 
@@ -496,19 +489,19 @@ fs14 <- methy_data %>%
   xlab("Group") +
   theme_bw() + 
   theme(legend.position = "none") 
-fs14
+fs16
 ```
 <br>
 <br>
 
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS14.pdf", plot = fs14, base_width = 5, base_height = 6)
+save_plot("Figures/FigureS16.pdf", plot = fs16, base_width = 5, base_height = 6)
 ```
 
 #### 3.3 Intersetion of method IHW and CAMT
 ```{r venn plot, fig.width=4, fig.height=3}
-fs15 <- draw.pairwise.venn(area1 = length(IHW),
+fs17 <- draw.pairwise.venn(area1 = length(IHW),
                            area2 = length(CAMT),
                            cross.area = length(intersect(IHW, CAMT)),
                            category = c("IHW", "CAMT"),
@@ -520,5 +513,5 @@ fs15 <- draw.pairwise.venn(area1 = length(IHW),
 <br>
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS15.pdf", fs15)
+save_plot("Figures/FigureS17.pdf", fs17)
 ```

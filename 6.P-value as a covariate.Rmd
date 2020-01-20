@@ -15,10 +15,11 @@ setwd("/Users/apple/Documents/GitHub/EWAS/")
 ```
 ## Contents
 ***
-- [1. Significant signals change across methods and covariates](#heatmap)
-- [2. The performance of covariate p-value by method IHW](#IHW)
-- [3. GO and KEGG analysis for ST results](#ST)
-- [4. Validate the IHW results by method CAMT](#CAMT)
+- [1. Stratified histograms by covariate "p-value"](#evaluation)
+- [2. Significant signals change across methods and covariates](#heatmap)
+- [3. The performance of covariate p-value by method IHW](#IHW)
+- [4. GO and KEGG analysis for ST results](#ST)
+- [5. Validate the IHW results by method CAMT](#CAMT)
 <br>
 <br>
 <br>
@@ -35,13 +36,65 @@ library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
 library(limma)
 library(DT)
 library(cowplot)
+library(IHW)
 selected_measure <- c("mean", "sd.b", "mad", "precision", "dhs", "direction",
                       "chr", "refgene.pos", "dip", "probe.type", "cpg.loc", "sd.m")
 
 ```
 
 
-### 1. Significant signals change across methods and covariates {#heatmap}
+### 1. Stratified histograms by covariate "p-value" {#evaluation}
+***
+```{r, fig.width=7, fig.height=2}
+# stratified histogram of EWAS29's p-value by z-score transfromed p-value from EWAS28
+EWAS28 <- readRDS("Data/dataset/EWAS28.RDS")
+EWAS29 <- readRDS("Data/dataset/EWAS29.RDS")
+
+overlap <- intersect(rownames(EWAS28), rownames(EWAS29))
+EWAS28_pvalue <- EWAS28[overlap, "P.value"]
+EWAS29_pvalue <- EWAS29[overlap, "P.value"]
+
+## z-score tranformation for EWAS28's p-value
+ztransform <- function(p.value, tol = 1E-15) {
+  # Transform p-values to z-scores
+  p.value[p.value <= tol] <- tol
+  p.value[p.value >= 1 - tol] <- 1 - tol
+  z <- -qnorm(p.value)
+  return(z)
+}
+EWAS28_pvalue_zscore <- ztransform(EWAS28_pvalue)
+
+## histogram of all raw p-values
+p1 <- ggplot(data = EWAS29[overlap, ], aes(x = P.value, y = stat(density))) + 
+  geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05, size = 0.05, boundary = 0) +
+  scale_y_continuous(breaks = c(0, 0.4, 0.8, 1.2)) +
+  theme_classic() +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+## histogram stratified by covariate p-value
+ihw.obj <- ihw(EWAS29_pvalue, EWAS28_pvalue_zscore, alpha = 0.05, covariate_type = "ordinal")
+result_df <- as.data.frame(ihw.obj)
+result_df$ihwGroup <- groups_by_filter(result_df$group, 4)
+
+p2 <- ggplot(data = result_df, aes(x = pvalue, y = stat(density))) + 
+  geom_histogram(fill = "#00AFBB", color = "black", binwidth = 0.05, boundary = 0, size = 0.05) +
+  facet_wrap(~ ihwGroup, nrow = 1, scales = "fixed") + 
+  scale_y_continuous(breaks = c(0, 0.4, 0.8, 1.2)) +
+  theme_classic()  +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8))
+
+## put figures together
+fs18 <- plot_grid(p1, p2, nrow = 1, labels = "AUTO", rel_widths = c(1, 3))
+fs18
+```
+
+```{r, include=FALSE}
+save_plot("Figures/FigureS18.pdf", fs18, base_width = 7, base_height = 2)
+```
+
+### 2. Significant signals change across methods and covariates {#heatmap}
 ***
 ```{r, fig.width=4, fig.height=5}
 # read in adjusted p-values to a list
@@ -192,15 +245,15 @@ EWAS28_sigprobes <- readRDS("Data/EWAS28_sigprobes.RDs")
 upset_df$EWAS28 <- ifelse(rownames(upset_df) %in% EWAS28_sigprobes, "yes", "no")
 
 # upset
-fs16_1 <- upset(upset_df,
+fs19_1 <- upset(upset_df,
       sets = selected_measure, 
       order.by = "freq",
       queries = list(list(query = elements, params = list("EWAS28", "yes"), color = "red", active = TRUE)),
       mb.ratio = c(0.6, 0.4),
       point.size = 1.5,
       line.size = 0.5)
-fs16_1 <- as.ggplot(fs16_1)
-fs16_1
+fs19_1 <- as.ggplot(fs19_1)
+fs19_1
 ```
 
 #### 4.2 GO and KEGG enrichment analysis
@@ -216,7 +269,7 @@ top10_GO$Term <- factor(top10_GO$Term, levels = as.character(top10_GO$Term[10:1]
 
 options(digits = 2)
 
-fs16_2 <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) + 
+fs19_2 <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) + 
   geom_col(aes(fill = FDR), width = 0.5) + 
   coord_flip() + 
   theme_classic() +
@@ -224,7 +277,7 @@ fs16_2 <- ggplot(data = top10_GO, mapping = aes(x = Term, y = ratio)) +
         legend.title = element_text(size = 7),
         legend.text = element_text(size = 5),
         legend.key.size = unit(4, "mm"))
-fs16_2
+fs19_2
 # Top 10 KEGG categories
 kegg <- gometh(sig.cpg = sigCpGs, all.cpg = raw_probes, collection = "KEGG", prior.prob=TRUE)
 datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = list(pageLength = 5, scrollX=T))
@@ -233,11 +286,11 @@ datatable(topKEGG(kegg, number = 10), rownames = TRUE, filter="none", options = 
 
 ```{r}
 # organize figures
-fs16 <- plot_grid(fs16_1, fs16_2, ncol = 1, labels = c("A", "B"), label_size = 18,
+fs19 <- plot_grid(fs19_1, fs19_2, ncol = 1, labels = c("A", "B"), label_size = 18,
                   rel_heights = c(2, 1))
 ```
 
 ```{r, include=FALSE}
-save_plot("Figures/FigureS16.pdf", plot = fs16, base_width = 6, base_height = 8)
+save_plot("Figures/FigureS19.pdf", plot = fs19, base_width = 6, base_height = 8)
 ```
 
