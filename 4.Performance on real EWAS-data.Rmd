@@ -181,7 +181,6 @@ draw(f3)
 dev.off()
 ```
 
-
 #### 3.2 Boxplot of logFC corresponding to the heatmap
 ```{r, fig.height=4, fig.width=6}
 # Method AdaPT's performance is very different from other methods, so an alternative range is set for it.
@@ -422,6 +421,7 @@ rownames(wide_data) <- wide_data$dataset
 wide_data$dataset <- NULL
 wide_data$icc.b <- NULL
 wide_data$icc.m <- NULL
+wide_data$most.sig[is.na(wide_data$most.sig)] <- 0
 covariate_order <- c("mean", "sd.b", "mad", "precision", "sd.m", "cpg.loc",
                      "direction", "refgene.pos", "probe.type", "dip", "dhs", "chr",
                      "most.sig", "multiple")
@@ -439,15 +439,6 @@ rownames(reference_discovery) <- reference_discovery$dataset
 wide_data$ST <- reference_discovery[rownames(wide_data), "ST"]
 wide_data$pi0 <- reference_discovery[rownames(wide_data), "pi0"]
 wide_data <- wide_data[order(wide_data$pi0), ]
-
-# heatmap body annotation
-annotation_df <- dcast(omnibus_result, dataset ~ measure, value.var = "p.value")
-rownames(annotation_df) <- annotation_df$dataset
-annotation_df$dataset <- NULL
-annotation_df <- annotation_df[rownames(wide_data), colnames(wide_data)[1:12]]
-annotation_df$most.sig <- 1
-annotation_df$multiple <- 1
-annotation_matrix <- as.matrix(annotation_df)
 
 col_fun <- colorRamp2(c(-4, -2, 0, 2, 4), c("royalblue", "blue", "white", "red", "red3"), 
                       space = "RGB")
@@ -470,11 +461,6 @@ fs12 <- Heatmap(as.matrix(wide_data[, 1:14]),
                                     labels_gp = gpar(fontsize = 5),
                                     grid_height = unit(0.1, "inch"),
                                     grid_width = unit(0.13, "inch")),
-        cell_fun = function(j, i, x, y, width, height, fill) {
-          if(!is.na(annotation_matrix[i, j])){
-            if(annotation_matrix[i, j]  < 0.05)
-              grid.text("*", x, y, vjust = 0.8, gp = gpar(fontsize = 4))
-          }},
         top_annotation = columnAnnotation(
           logFC = anno_boxplot(top_anno, outline = FALSE,
                                gp = gpar(fill = measrue_color[covariate_order])),
@@ -500,5 +486,4 @@ pdf("Figures/FigureS12.pdf", width = 4.5, height = 6)
 draw(fs12)
 dev.off()
 ```
-
 
